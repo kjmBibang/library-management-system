@@ -236,3 +236,16 @@ footer {
     color: #3498db;
     text-decoration: none;
 }
+
+.error-alert {
+            background-color: #fdeaea !important;
+            color: #e74c3c !important;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e74c3c !important;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: block; /* Ensures it takes up space */
+            width: 100%;
+}

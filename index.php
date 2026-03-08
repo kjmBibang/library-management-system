@@ -15,7 +15,7 @@
             <li><a href="#about">About</a></li>
             <li><a href="#services">Services</a></li>
             <li><a href="#contact">Contact</a></li>
-            <li><a href="login.php" class="login-btn">Login</a></li>
+            <li><a href="signup.php" style="margin-right: 10px;">Sign Up</a></li> <li><a href="login.php" class="login-btn">Login</a></li>
         </ul>
     </nav>
 

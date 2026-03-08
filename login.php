@@ -17,6 +17,12 @@
                 <p>Please enter your library credentials</p>
             </div>
 
+            <?php if (isset($_GET['error']) && $_GET['error'] == 'invalid'): ?>
+                <div class="error-alert">
+                    Invalid Library ID or Password.
+                </div>
+            <?php endif; ?>
+
             <form action="process_login.php" method="POST">
                 <div class="input-group">
                     <label for="username">Library ID / Email</label>
@@ -32,7 +38,7 @@
             </form>
 
             <div class="login-footer">
-                <p>Forgot password? <a href="#">Contact Librarian</a></p>
+                <p>Dont have an account? <a href="signup.php">Sign Up</a></p>
             </div>
         </div>
     </div>
