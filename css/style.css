@@ -95,6 +95,9 @@ body {
     text-decoration: none;
     border-radius: 5px;
 }
+.cta-button:hover {
+    background: #2980b9;
+}
 
 /* Section Styles */
 .section {
