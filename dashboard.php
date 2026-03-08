@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// If the user isn't logged in, kick them back to login
+// kcik user out
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
