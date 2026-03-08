@@ -18,7 +18,7 @@ if (!isset($_SESSION['user_id'])) {
     <nav class="navbar">
         <div class="logo">Bryce<span>Library</span></div>
         <ul class="nav-links">
-            <li><a href="logout.php" class="login-btn">Logout</a></li>
+            <li><a href="login.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>
 
