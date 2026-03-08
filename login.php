@@ -17,13 +17,9 @@
                 <p>Please enter your library credentials</p>
             </div>
 
-            <?php if (isset($_GET['error'])): ?>
-                <div style="background: #fdeaea; color: #e74c3c; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 0.85rem; text-align: center; border: 1px solid #e74c3c;">
-                    <?php 
-                        if($_GET['error'] == "wrong_password") echo "Incorrect password. Please try again.";
-                        elseif($_GET['error'] == "user_not_found") echo "Library ID not found.";
-                        else echo "An error occurred. Please try again.";
-                    ?>
+            <?php if (isset($_GET['error']) && $_GET['error'] == 'invalid'): ?>
+                <div class="error-alert">
+                    Invalid Library ID or Password.
                 </div>
             <?php endif; ?>
 
@@ -42,7 +38,7 @@
             </form>
 
             <div class="login-footer">
-                <p>Forgot password? <a href="#">Contact Librarian</a></p>
+                <p>Dont have an account? <a href="signup.php">Sign Up</a></p>
             </div>
         </div>
     </div>
