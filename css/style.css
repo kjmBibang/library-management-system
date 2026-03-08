@@ -95,6 +95,9 @@ body {
     text-decoration: none;
     border-radius: 5px;
 }
+.cta-button:hover {
+    background: #2980b9;
+}
 
 /* Section Styles */
 .section {
@@ -118,10 +121,6 @@ body {
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-}
-.service-card:hover {
-    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-    transform: translateY(5px);
 }
 
 /* Footer */
