@@ -3,7 +3,7 @@ $servername = "127.0.0.1";
 $username = "root";
 $password = "";
 $dbname = "bryce_library";
-$port = 3306; // if mag error, ilisdi and port i match sa xampp port
+$port = 3307; // if mag error, ilisdi and port i match sa xampp port
 
 $conn = new mysqli($servername, $username, $password, $dbname, $port);
 

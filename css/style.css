@@ -253,5 +253,54 @@ footer {
             display: block; 
             width: 100%;
 }
+/* Borrowers */
+.primary-btn{
+    display: inline-block;
+    background: #3498db;
+    color: #fff;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.primary-btn:hover{
+    background: #2980b9;
+}
+
+.data-table{
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.data-table th,
+.data-table td{
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.data-table th{
+    background: #f4f7f6;
+    font-weight: bold;
+}
+
+.data-table tr:nth-child(even){
+    background: #f9f9f9;
+}
+
+section{
+    padding: 40px 10%;
+}
+
+form input{
+    width: 300px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
 /* =================================================================================================*/
 /* DO NOT EDIT ABOVE UNDER ANY CIRCUMSTANCE | AYAW I EDIT AND CODE SA TAAS */
