@@ -16,7 +16,7 @@
 
 <nav class="navbar">
 
-<div class="logo">Library<span>System</span></div>
+<div class="logo">Bryce<span>Library</span></div>
 
 <ul class="nav-links">
 <li><a href="dashboard.php">Dashboard</a></li>
