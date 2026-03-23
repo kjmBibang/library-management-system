@@ -14,50 +14,51 @@ if (!isset($_SESSION['user_id'])) {
     <title>Dashboard | BryceLibrary</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="dashboard-page-body">
+<body>
 
     <nav class="navbar">
         <div class="logo">Bryce<span>Library</span></div>
         <ul class="nav-links">
             <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="books.php">Books</a></li>
+            <li><a href="borrowers.php">Borrowers</a></li>
             <li><a href="login.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>
 
-    <div class="dashboard-page-wrapper">
-        <div class="dashboard-page-hero">
-            <h1>Welcome, <?php echo htmlspecialchars($_SESSION['library_id']); ?>!</h1>
-            <p>You have successfully accessed the BryceLibrary dashboard.</p>
-        </div>
+    <section class="section">
+        <h1>Welcome, <?php echo htmlspecialchars($_SESSION['library_id']); ?>!</h1>
+        <p>You have successfully accessed the BryceLibrary dashboard.</p>
+        <a href="books.php" class="primary-btn">Go to Books</a>
+        <a href="borrowers.php" class="primary-btn">Borrowers</a>
+    </section>
 
-        <div class="dashboard-page-stats-grid">
-            <div class="dashboard-page-stat-card">
+    <section class="section bg-light">
+        <h2>Library Statistics</h2>
+        <div class="services-grid">
+            <div class="service-card">
                 <h3>Total Books</h3>
-                <div class="dashboard-page-stat-number">120</div>
-                <p>Books currently listed in the library system.</p>
+                <p>120 books currently listed in the library system.</p>
             </div>
 
-            <div class="dashboard-page-stat-card">
+            <div class="service-card">
                 <h3>Available Books</h3>
-                <div class="dashboard-page-stat-number">85</div>
-                <p>Books ready for borrowing.</p>
+                <p>85 books ready for borrowing.</p>
             </div>
 
-            <div class="dashboard-page-stat-card">
+            <div class="service-card">
                 <h3>Borrowed Books</h3>
-                <div class="dashboard-page-stat-number">35</div>
-                <p>Books currently borrowed by users.</p>
+                <p>35 books currently borrowed by users.</p>
             </div>
 
-            <div class="dashboard-page-stat-card">
+            <div class="service-card">
                 <h3>Active Members</h3>
-                <div class="dashboard-page-stat-number">48</div>
-                <p>Registered users with access to the system.</p>
+                <p>48 registered users with access to the system.</p>
             </div>
         </div>
+    </section>
 
-        <div class="dashboard-page-panel">
+    <section class="section">
             <h2>Quick Overview</h2>
             <ul>
                 <li>Manage and view book records from the Books page.</li>
@@ -66,12 +67,8 @@ if (!isset($_SESSION['user_id'])) {
                 <li>All values are static for now until database features are added.</li>
             </ul>
 
-            <div class="dashboard-page-links">
-                <a href="books.php">Go to Books</a>
-                <a href="index.php">Home Page</a>
-            </div>
-        </div>
-    </div>
+            <a href="index.php" class="primary-btn">Home Page</a>
+    </section>
 
 </body>
 </html>
