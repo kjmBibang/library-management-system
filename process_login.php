@@ -6,20 +6,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_input = $_POST['username'];
     $pass_input = $_POST['password'];
 
-    
-    $stmt = $conn->prepare("SELECT id, library_id, password FROM users WHERE library_id = ?");
+    $stmt = $conn->prepare("CALL sp_auth_get_user(?)");
+    if (!$stmt) {
+        header("Location: login.php?error=invalid");
+        exit();
+    }
+
     $stmt->bind_param("s", $user_input);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        header("Location: login.php?error=invalid");
+        exit();
+    }
+
     $result = $stmt->get_result();
 
-    if ($result->num_rows === 1) {
+    if ($result && $result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
         
         if (password_verify($pass_input, $user['password'])) {
             
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['library_id'] = $user['library_id'];
+            $_SESSION['username'] = $user['username'];
             
             header("Location: dashboard.php");
             exit();
@@ -32,6 +40,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         header("Location: login.php?error=invalid");
         exit();
+    }
+
+    if ($result) {
+        $result->free();
+    }
+
+    $stmt->close();
+
+    while ($conn->more_results() && $conn->next_result()) {
     }
 }
 ?>

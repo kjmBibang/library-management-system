@@ -25,14 +25,14 @@
 
             <?php if (isset($_GET['error']) && $_GET['error'] == 'exists'): ?>
                 <div style="color: #e74c3c; background: #fdeaea; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #e74c3c;">
-                    Library ID already registered.
+                    Username already registered.
                 </div>
             <?php endif; ?>
 
             <form action="process_signup.php" method="POST">
                 <div class="input-group">
-                    <label for="username">Create Library ID</label>
-                    <input type="text" id="username" name="username" placeholder="e.g. LIB-9921" required>
+                    <label for="username">Create Username</label>
+                    <input type="text" id="username" name="username" placeholder="e.g. john_doe" required>
                 </div>
 
                 <div class="input-group">

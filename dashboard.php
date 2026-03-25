@@ -27,7 +27,7 @@ if (!isset($_SESSION['user_id'])) {
     </nav>
 
     <section class="section">
-        <h1>Welcome, <?php echo htmlspecialchars($_SESSION['library_id']); ?>!</h1>
+        <h1>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
         <p>You have successfully accessed the BryceLibrary dashboard.</p>
         <a href="books.php" class="primary-btn">Go to Books</a>
         <a href="borrowers.php" class="primary-btn">Borrowers</a>
