@@ -9,3 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+
+ALTER TABLE users
+CHANGE library_id username VARCHAR(255) NOT NULL,
+ADD COLUMN role ENUM('admin', 'staff') NOT NULL DEFAULT 'staff' AFTER username;
