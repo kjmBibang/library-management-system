@@ -6,13 +6,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_input = $_POST['username'];
     $pass_input = $_POST['password'];
 
-    
-    $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE username = ?");
+    $stmt = $conn->prepare("CALL sp_auth_get_user(?)");
+    if (!$stmt) {
+        header("Location: login.php?error=invalid");
+        exit();
+    }
+
     $stmt->bind_param("s", $user_input);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        header("Location: login.php?error=invalid");
+        exit();
+    }
+
     $result = $stmt->get_result();
 
-    if ($result->num_rows === 1) {
+    if ($result && $result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
         
@@ -32,6 +40,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         header("Location: login.php?error=invalid");
         exit();
+    }
+
+    if ($result) {
+        $result->free();
+    }
+
+    $stmt->close();
+
+    while ($conn->more_results() && $conn->next_result()) {
     }
 }
 ?>

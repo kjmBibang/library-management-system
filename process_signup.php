@@ -7,33 +7,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
     $plain_password = $_POST['password'];
 
-   
-    $check_stmt = $conn->prepare("SELECT username FROM users WHERE username = ?");
-    $check_stmt->bind_param("s", $username);
-    $check_stmt->execute();
-    $result = $check_stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        
-        header("Location: signup.php?error=exists");
-        exit();
-    }
-
     $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
 
-    $insert_stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $insert_stmt->bind_param("ss", $username, $hashed_password);
-
-    if ($insert_stmt->execute()) {
-        
-        header("Location: signup.php?success=1");
-        exit();
-    } else {
-        
+    $stmt = $conn->prepare("CALL sp_user_create(?, ?, ?)");
+    if (!$stmt) {
         die("Registration failed: " . $conn->error);
     }
 
-    $insert_stmt->close();
+    $role = 'staff';
+    $stmt->bind_param("sss", $username, $hashed_password, $role);
+
+    try {
+        $stmt->execute();
+        header("Location: signup.php?success=1");
+        exit();
+    } catch (mysqli_sql_exception $e) {
+        if ($e->getCode() === 1644 || stripos($e->getMessage(), 'Username already exists') !== false) {
+            header("Location: signup.php?error=exists");
+            exit();
+        }
+
+        die("Registration failed: " . $e->getMessage());
+    }
+
+    $stmt->close();
+
+    while ($conn->more_results() && $conn->next_result()) {
+    }
+
     $conn->close();
 } else {
     
