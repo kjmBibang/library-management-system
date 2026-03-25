@@ -1,37 +1,64 @@
 <?php
 require_once 'auth_guard.php';
 require_auth(['admin', 'staff']);
+require_once 'db_connect.php';
 
-$allBooks = [
-    ['bookID' => 1, 'title' => 'Clean Code', 'author' => 'Robert C. Martin', 'category' => 'Programming', 'year_published' => 2008, 'total_copies' => 5, 'available_copies' => 2],
-    ['bookID' => 2, 'title' => 'The Pragmatic Programmer', 'author' => 'Andrew Hunt', 'category' => 'Programming', 'year_published' => 1999, 'total_copies' => 4, 'available_copies' => 0],
-    ['bookID' => 3, 'title' => 'Atomic Habits', 'author' => 'James Clear', 'category' => 'Self-Help', 'year_published' => 2018, 'total_copies' => 6, 'available_copies' => 4],
-    ['bookID' => 4, 'title' => 'Sapiens', 'author' => 'Yuval Noah Harari', 'category' => 'History', 'year_published' => 2011, 'total_copies' => 3, 'available_copies' => 1],
-];
+function clearStoredResults(mysqli $conn): void
+{
+    while ($conn->more_results() && $conn->next_result()) {
+        if ($result = $conn->store_result()) {
+            $result->free();
+        }
+    }
+}
 
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
-$category = isset($_GET['category']) ? trim($_GET['category']) : '';
+$categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : 0;
 
-$categories = array_values(array_unique(array_map(static function ($book) {
-    return $book['category'];
-}, $allBooks)));
-sort($categories);
+$categories = [];
+$filteredBooks = [];
+$dbError = '';
 
-$filteredBooks = array_values(array_filter($allBooks, static function ($book) use ($search, $category) {
-    $matchesSearch = true;
-    $matchesCategory = true;
+try {
+    $categoryStmt = $conn->prepare("CALL sp_category_list()");
+    if ($categoryStmt) {
+        $categoryStmt->execute();
+        $categoryResult = $categoryStmt->get_result();
 
-    if ($search !== '') {
-        $haystack = strtolower($book['title'] . ' ' . $book['author'] . ' ' . $book['category']);
-        $matchesSearch = strpos($haystack, strtolower($search)) !== false;
+        if ($categoryResult) {
+            while ($row = $categoryResult->fetch_assoc()) {
+                $categories[] = $row;
+            }
+            $categoryResult->free();
+        }
+
+        $categoryStmt->close();
+        clearStoredResults($conn);
     }
 
-    if ($category !== '') {
-        $matchesCategory = strcasecmp($book['category'], $category) === 0;
-    }
+    $bookStmt = $conn->prepare("CALL sp_book_search(?, ?, ?, ?)");
+    if ($bookStmt) {
+        $limitRows = 200;
+        $offsetRows = 0;
+        $bookStmt->bind_param("siii", $search, $categoryId, $limitRows, $offsetRows);
+        $bookStmt->execute();
 
-    return $matchesSearch && $matchesCategory;
-}));
+        $bookResult = $bookStmt->get_result();
+        if ($bookResult) {
+            while ($row = $bookResult->fetch_assoc()) {
+                $filteredBooks[] = $row;
+            }
+            $bookResult->free();
+        }
+
+        $bookStmt->close();
+        clearStoredResults($conn);
+    }
+} catch (mysqli_sql_exception $e) {
+    $dbError = $e->getMessage();
+}
+
+$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,7 +82,11 @@ $filteredBooks = array_values(array_filter($allBooks, static function ($book) us
 
     <section>
         <h1>Books Management</h1>
-        <p>UI scaffold mode: actions are wired but persistence will be connected in the next step.</p>
+        <p>Manage your catalog and monitor live availability.</p>
+
+        <?php if ($dbError !== ''): ?>
+            <div class="error-alert">Unable to load books right now: <?php echo htmlspecialchars($dbError); ?></div>
+        <?php endif; ?>
 
         <?php if (isset($_GET['book_added'])): ?>
             <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book added (UI flow check).</div>
@@ -78,12 +109,12 @@ $filteredBooks = array_values(array_filter($allBooks, static function ($book) us
             </div>
 
             <div>
-                <label for="category">Category</label><br>
-                <select id="category" name="category" style="width: 220px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="">All Categories</option>
+                <label for="category_id">Category</label><br>
+                <select id="category_id" name="category_id" style="width: 220px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="0">All Categories</option>
                     <?php foreach ($categories as $cat): ?>
-                        <option value="<?php echo htmlspecialchars($cat); ?>" <?php echo strcasecmp($category, $cat) === 0 ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($cat); ?>
+                        <option value="<?php echo (int) $cat['categoryID']; ?>" <?php echo $categoryId === (int) $cat['categoryID'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($cat['category_name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -116,16 +147,15 @@ $filteredBooks = array_values(array_filter($allBooks, static function ($book) us
                     </tr>
                 <?php else: ?>
                     <?php foreach ($filteredBooks as $book): ?>
-                        <?php $status = $book['available_copies'] > 0 ? 'Available' : 'Unavailable'; ?>
                         <tr>
                             <td><?php echo (int) $book['bookID']; ?></td>
                             <td><?php echo htmlspecialchars($book['title']); ?></td>
                             <td><?php echo htmlspecialchars($book['author']); ?></td>
-                            <td><?php echo htmlspecialchars($book['category']); ?></td>
+                            <td><?php echo htmlspecialchars($book['category_name']); ?></td>
                             <td><?php echo (int) $book['year_published']; ?></td>
                             <td><?php echo (int) $book['total_copies']; ?></td>
                             <td><?php echo (int) $book['available_copies']; ?></td>
-                            <td><?php echo $status; ?></td>
+                            <td><?php echo htmlspecialchars($book['availability_status']); ?></td>
                             <td>
                                 <a href="book_edit.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn">Edit</a>
                                 <a href="book_delete.php?id=<?php echo (int) $book['bookID']; ?>&title=<?php echo urlencode($book['title']); ?>" class="primary-btn" style="background:#e74c3c;">Delete</a>

@@ -30,6 +30,10 @@ require_auth(['admin', 'staff']);
             <div class="error-alert">Please provide valid values for all required fields.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'db'): ?>
+            <div class="error-alert">Unable to save book right now. Please try again.</div>
+        <?php endif; ?>
+
         <form action="process_book_add.php" method="POST">
             <label for="title">Title</label><br>
             <input type="text" id="title" name="title" required><br><br>
