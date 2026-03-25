@@ -5,7 +5,13 @@ require_once 'db_connect.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     $username = trim($_POST['username']);
+    $role = isset($_POST['role']) ? trim(strtolower($_POST['role'])) : 'staff';
     $plain_password = $_POST['password'];
+
+    if (!in_array($role, ['admin', 'staff'], true)) {
+        header("Location: signup.php?error=invalid_role");
+        exit();
+    }
 
     $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
 
@@ -14,7 +20,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Registration failed: " . $conn->error);
     }
 
-    $role = 'staff';
     $stmt->bind_param("sss", $username, $hashed_password, $role);
 
     try {

@@ -23,6 +23,12 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (isset($_GET['error']) && $_GET['error'] == 'forbidden'): ?>
+                <div class="error-alert">
+                    Access denied. Your account role cannot access that page.
+                </div>
+            <?php endif; ?>
+
             <form action="process_login.php" method="POST">
                 <div class="input-group">
                     <label for="username">Username</label>
