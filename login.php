@@ -19,14 +19,14 @@
 
             <?php if (isset($_GET['error']) && $_GET['error'] == 'invalid'): ?>
                 <div class="error-alert">
-                    Invalid Library ID or Password.
+                    Invalid Username or Password.
                 </div>
             <?php endif; ?>
 
             <form action="process_login.php" method="POST">
                 <div class="input-group">
-                    <label for="username">Library ID / Email</label>
-                    <input type="text" id="username" name="username" placeholder="e.g. LIB-9921" required>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="e.g. john_doe" required>
                 </div>
 
                 <div class="input-group">

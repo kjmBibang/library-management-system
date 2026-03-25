@@ -7,7 +7,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $pass_input = $_POST['password'];
 
     
-    $stmt = $conn->prepare("SELECT id, library_id, password FROM users WHERE library_id = ?");
+    $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE username = ?");
     $stmt->bind_param("s", $user_input);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($pass_input, $user['password'])) {
             
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['library_id'] = $user['library_id'];
+            $_SESSION['username'] = $user['username'];
             
             header("Location: dashboard.php");
             exit();
