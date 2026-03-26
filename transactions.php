@@ -152,6 +152,10 @@ $conn->close();
         .row-overdue {
             background: #fff6f6 !important;
         }
+
+        .row-overdue td {
+            background: #fdeaea !important;
+        }
     </style>
 </head>
 <body>
@@ -169,18 +173,54 @@ $conn->close();
 
     <section>
         <h1>Borrow and Return Transactions</h1>
-        <p>UI prep: forms and list are ready for full transaction logic wiring.</p>
+        <p>Process borrow and return actions with live due-date and overdue tracking.</p>
 
         <?php if ($dbError !== ''): ?>
             <div class="error-alert">Unable to load transaction data right now: <?php echo htmlspecialchars($dbError); ?></div>
         <?php endif; ?>
 
-        <?php if (isset($_GET['notice']) && $_GET['notice'] === 'borrow_ui_ready'): ?>
-            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Borrow form submitted. Handler stub is ready for DB logic integration.</div>
+        <?php if (isset($_GET['success']) && $_GET['success'] === 'borrowed'): ?>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book borrowed successfully.</div>
         <?php endif; ?>
 
-        <?php if (isset($_GET['notice']) && $_GET['notice'] === 'return_ui_ready'): ?>
-            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Return form submitted. Handler stub is ready for DB logic integration.</div>
+        <?php if (isset($_GET['success']) && $_GET['success'] === 'returned'): ?>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book returned successfully.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'borrow_invalid'): ?>
+            <div class="error-alert">Please select a book, borrower, and due date.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'borrow_invalid_due'): ?>
+            <div class="error-alert">Due date must be later than the current borrow date.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'book_unavailable'): ?>
+            <div class="error-alert">Selected book is no longer available for borrowing.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'borrow_reference'): ?>
+            <div class="error-alert">Selected book or borrower was not found.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'borrow_failed'): ?>
+            <div class="error-alert">Borrow transaction failed. Please try again.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'return_invalid'): ?>
+            <div class="error-alert">Please select a transaction and return date.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'already_returned'): ?>
+            <div class="error-alert">This transaction has already been returned.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'return_reference'): ?>
+            <div class="error-alert">Transaction not found. Refresh and try again.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'return_failed'): ?>
+            <div class="error-alert">Return transaction failed. Please try again.</div>
         <?php endif; ?>
 
         <div class="tx-grid">
@@ -256,17 +296,19 @@ $conn->close();
                     <?php else: ?>
                         <?php foreach ($activeBorrows as $tx): ?>
                             <?php
-                                $isOverdue = (int) $tx['current_days_overdue'] > 0 || strtolower((string) $tx['status']) === 'overdue';
+                                $dueTimestamp = strtotime((string) $tx['due_date']);
+                                $isPastDueNow = $dueTimestamp !== false && $dueTimestamp < time();
+                                $isOverdue = $isPastDueNow || (int) $tx['current_days_overdue'] > 0 || strtolower((string) $tx['status']) === 'overdue';
                                 $statusClass = $isOverdue ? 'status-pill overdue' : 'status-pill';
                                 $rowClass = $isOverdue ? 'row-overdue' : '';
                             ?>
-                            <tr class="<?php echo $rowClass; ?>">
+                            <tr class="<?php echo $rowClass; ?>" data-due-date="<?php echo htmlspecialchars((string) $tx['due_date']); ?>">
                                 <td><?php echo (int) $tx['transactionID']; ?></td>
                                 <td><?php echo htmlspecialchars($tx['title']); ?></td>
                                 <td><?php echo htmlspecialchars($tx['borrower_name']); ?></td>
                                 <td><?php echo htmlspecialchars((string) $tx['borrow_date']); ?></td>
                                 <td><?php echo htmlspecialchars((string) $tx['due_date']); ?></td>
-                                <td><span class="<?php echo $statusClass; ?>"><?php echo $isOverdue ? 'Overdue' : 'Active'; ?></span></td>
+                                <td><span class="<?php echo $statusClass; ?> js-status-pill"><?php echo $isOverdue ? 'Overdue' : 'Active'; ?></span></td>
                                 <td><?php echo (int) $tx['current_days_overdue']; ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -275,6 +317,46 @@ $conn->close();
             </table>
         </div>
     </section>
+
+    <script>
+        (function () {
+            function parseMysqlDateTime(dateText) {
+                if (!dateText) {
+                    return null;
+                }
+
+                var normalized = dateText.trim().replace(' ', 'T');
+                var parsed = new Date(normalized);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+
+            function refreshOverdueStyles() {
+                var now = new Date();
+                var rows = document.querySelectorAll('tr[data-due-date]');
+
+                rows.forEach(function (row) {
+                    var dueDate = parseMysqlDateTime(row.getAttribute('data-due-date'));
+                    if (!dueDate) {
+                        return;
+                    }
+
+                    var isOverdue = dueDate.getTime() < now.getTime();
+                    var pill = row.querySelector('.js-status-pill');
+
+                    if (isOverdue) {
+                        row.classList.add('row-overdue');
+                        if (pill) {
+                            pill.classList.add('overdue');
+                            pill.textContent = 'Overdue';
+                        }
+                    }
+                });
+            }
+
+            refreshOverdueStyles();
+            setInterval(refreshOverdueStyles, 30000);
+        })();
+    </script>
 
 </body>
 </html>
