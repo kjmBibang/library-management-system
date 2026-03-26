@@ -1,5 +1,5 @@
 <?php
-require_once 'auth_guard.php';
+require_once 'includes/auth_guard.php';
 require_auth(['admin', 'staff']);
 ?>
 
@@ -24,7 +24,7 @@ require_auth(['admin', 'staff']);
 <li><a href="dashboard.php">Dashboard</a></li>
 <li><a href="books.php">Books</a></li>
 <li><a href="borrowers.php">Borrowers</a></li>
-<li><a href="logout.php" class="login-btn">Logout</a></li>
+<li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
 </ul>
 
 </nav>

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db_connect.php';
+require_once '../../config/db_connect.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user_input = $_POST['username'];
@@ -8,13 +8,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $stmt = $conn->prepare("CALL sp_auth_get_user(?)");
     if (!$stmt) {
-        header("Location: login.php?error=invalid");
+        header("Location: ../../login.php?error=invalid");
         exit();
     }
 
     $stmt->bind_param("s", $user_input);
     if (!$stmt->execute()) {
-        header("Location: login.php?error=invalid");
+        header("Location: ../../login.php?error=invalid");
         exit();
     }
 
@@ -30,16 +30,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
             
-            header("Location: dashboard.php");
+            header("Location: ../../dashboard.php");
             exit();
         } else {
             
-            header("Location: login.php?error=invalid");
+            header("Location: ../../login.php?error=invalid");
             exit();
         }
     } else {
         
-        header("Location: login.php?error=invalid");
+        header("Location: ../../login.php?error=invalid");
         exit();
     }
 

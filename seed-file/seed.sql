@@ -100,8 +100,11 @@ DROP PROCEDURE IF EXISTS sp_borrow_book;
 DROP PROCEDURE IF EXISTS sp_borrower_search;
 DROP PROCEDURE IF EXISTS sp_borrower_save;
 DROP PROCEDURE IF EXISTS sp_book_search;
+DROP PROCEDURE IF EXISTS sp_book_get_by_id;
 DROP PROCEDURE IF EXISTS sp_book_delete;
 DROP PROCEDURE IF EXISTS sp_book_save;
+DROP PROCEDURE IF EXISTS sp_category_list;
+DROP PROCEDURE IF EXISTS sp_category_get_or_create;
 DROP PROCEDURE IF EXISTS sp_user_create;
 DROP PROCEDURE IF EXISTS sp_auth_get_user;
 
@@ -171,6 +174,41 @@ BEGIN
 
     INSERT INTO users (username, password, role)
     VALUES (TRIM(p_username), p_password, v_role);
+END //
+
+CREATE PROCEDURE sp_category_list()
+BEGIN
+    SELECT categoryID, category_name
+    FROM categories
+    ORDER BY category_name ASC;
+END //
+
+CREATE PROCEDURE sp_category_get_or_create(
+    IN p_category_name VARCHAR(100)
+)
+BEGIN
+    DECLARE v_category_name VARCHAR(100);
+    DECLARE v_category_id INT;
+
+    SET v_category_name = TRIM(p_category_name);
+
+    IF v_category_name IS NULL OR v_category_name = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Category is required';
+    END IF;
+
+    SELECT categoryID INTO v_category_id
+    FROM categories
+    WHERE LOWER(category_name) = LOWER(v_category_name)
+    LIMIT 1;
+
+    IF v_category_id IS NULL THEN
+        INSERT INTO categories (category_name)
+        VALUES (v_category_name);
+
+        SET v_category_id = LAST_INSERT_ID();
+    END IF;
+
+    SELECT v_category_id AS categoryID;
 END //
 
 CREATE PROCEDURE sp_book_save(
@@ -252,6 +290,26 @@ BEGIN
       AND (p_categoryID IS NULL OR p_categoryID = 0 OR b.categoryID = p_categoryID)
     ORDER BY b.title ASC
     LIMIT p_limit_rows OFFSET p_offset_rows;
+END //
+
+CREATE PROCEDURE sp_book_get_by_id(
+    IN p_bookID INT
+)
+BEGIN
+    SELECT
+        b.bookID,
+        b.title,
+        b.author,
+        b.categoryID,
+        c.category_name,
+        b.total_copies,
+        b.available_copies,
+        b.year_published,
+        fn_book_availability_status(b.available_copies) AS availability_status
+    FROM books b
+    INNER JOIN categories c ON c.categoryID = b.categoryID
+    WHERE b.bookID = p_bookID
+    LIMIT 1;
 END //
 
 CREATE PROCEDURE sp_borrower_save(
