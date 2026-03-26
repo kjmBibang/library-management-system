@@ -89,15 +89,27 @@ $conn->close();
         <?php endif; ?>
 
         <?php if (isset($_GET['book_added'])): ?>
-            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book added (UI flow check).</div>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book added successfully.</div>
         <?php endif; ?>
 
         <?php if (isset($_GET['book_updated'])): ?>
-            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book updated (UI flow check).</div>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book updated successfully.</div>
         <?php endif; ?>
 
         <?php if (isset($_GET['book_deleted'])): ?>
-            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book deleted (UI flow check).</div>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book deleted successfully.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'cannot_delete_active'): ?>
+            <div class="error-alert">Cannot delete this book because it has active borrowed or overdue transactions.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'delete_failed'): ?>
+            <div class="error-alert">Delete failed. Please try again.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'not_found'): ?>
+            <div class="error-alert">Book not found.</div>
         <?php endif; ?>
 
         <a href="book_add.php" class="primary-btn">+ Add Book</a>
@@ -158,7 +170,7 @@ $conn->close();
                             <td><?php echo htmlspecialchars($book['availability_status']); ?></td>
                             <td>
                                 <a href="book_edit.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn">Edit</a>
-                                <a href="book_delete.php?id=<?php echo (int) $book['bookID']; ?>&title=<?php echo urlencode($book['title']); ?>" class="primary-btn" style="background:#e74c3c;">Delete</a>
+                                <a href="book_delete.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn" style="background:#e74c3c;">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
