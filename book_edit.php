@@ -1,22 +1,50 @@
 <?php
 require_once 'auth_guard.php';
 require_auth(['admin', 'staff']);
+require_once 'db_connect.php';
 
 $bookId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-$mockBooks = [
-    1 => ['title' => 'Clean Code', 'author' => 'Robert C. Martin', 'category' => 'Programming', 'year_published' => 2008, 'total_copies' => 5, 'available_copies' => 2],
-    2 => ['title' => 'The Pragmatic Programmer', 'author' => 'Andrew Hunt', 'category' => 'Programming', 'year_published' => 1999, 'total_copies' => 4, 'available_copies' => 0],
-    3 => ['title' => 'Atomic Habits', 'author' => 'James Clear', 'category' => 'Self-Help', 'year_published' => 2018, 'total_copies' => 6, 'available_copies' => 4],
-    4 => ['title' => 'Sapiens', 'author' => 'Yuval Noah Harari', 'category' => 'History', 'year_published' => 2011, 'total_copies' => 3, 'available_copies' => 1],
-];
-
-if ($bookId <= 0 || !isset($mockBooks[$bookId])) {
+if ($bookId <= 0) {
     header('Location: books.php?error=not_found');
     exit();
 }
 
-$book = $mockBooks[$bookId];
+$book = null;
+$dbError = '';
+
+try {
+    $stmt = $conn->prepare('CALL sp_book_get_by_id(?)');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare book lookup');
+    }
+
+    $stmt->bind_param('i', $bookId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $book = $result ? $result->fetch_assoc() : null;
+
+    if ($result) {
+        $result->free();
+    }
+
+    $stmt->close();
+
+    while ($conn->more_results() && $conn->next_result()) {
+        if ($pendingResult = $conn->store_result()) {
+            $pendingResult->free();
+        }
+    }
+} catch (Throwable $e) {
+    $dbError = $e->getMessage();
+}
+
+$conn->close();
+
+if (!$book && $dbError === '') {
+    header('Location: books.php?error=not_found');
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,10 +68,18 @@ $book = $mockBooks[$bookId];
 
     <section>
         <h1>Edit Book</h1>
-        <p>UI scaffold form for book editing.</p>
+        <p>Update book details and availability values.</p>
+
+        <?php if ($dbError !== ''): ?>
+            <div class="error-alert">Unable to load book right now.</div>
+        <?php else: ?>
 
         <?php if (isset($_GET['error']) && $_GET['error'] === 'invalid'): ?>
             <div class="error-alert">Please provide valid values for all required fields.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'db'): ?>
+            <div class="error-alert">Unable to update book right now. Please try again.</div>
         <?php endif; ?>
 
         <form action="process_book_edit.php" method="POST">
@@ -56,7 +92,7 @@ $book = $mockBooks[$bookId];
             <input type="text" id="author" name="author" value="<?php echo htmlspecialchars($book['author']); ?>" required><br><br>
 
             <label for="category">Category</label><br>
-            <input type="text" id="category" name="category" value="<?php echo htmlspecialchars($book['category']); ?>" required><br><br>
+            <input type="text" id="category" name="category" value="<?php echo htmlspecialchars($book['category_name']); ?>" required><br><br>
 
             <label for="year_published">Year Published</label><br>
             <input type="number" id="year_published" name="year_published" min="1000" max="9999" value="<?php echo (int) $book['year_published']; ?>" required><br><br>
@@ -70,6 +106,8 @@ $book = $mockBooks[$bookId];
             <button type="submit" class="primary-btn">Update Book</button>
             <a href="books.php" class="primary-btn" style="background:#7f8c8d;">Cancel</a>
         </form>
+
+        <?php endif; ?>
     </section>
 
 </body>

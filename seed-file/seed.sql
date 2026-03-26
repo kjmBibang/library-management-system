@@ -100,6 +100,7 @@ DROP PROCEDURE IF EXISTS sp_borrow_book;
 DROP PROCEDURE IF EXISTS sp_borrower_search;
 DROP PROCEDURE IF EXISTS sp_borrower_save;
 DROP PROCEDURE IF EXISTS sp_book_search;
+DROP PROCEDURE IF EXISTS sp_book_get_by_id;
 DROP PROCEDURE IF EXISTS sp_book_delete;
 DROP PROCEDURE IF EXISTS sp_book_save;
 DROP PROCEDURE IF EXISTS sp_category_list;
@@ -289,6 +290,26 @@ BEGIN
       AND (p_categoryID IS NULL OR p_categoryID = 0 OR b.categoryID = p_categoryID)
     ORDER BY b.title ASC
     LIMIT p_limit_rows OFFSET p_offset_rows;
+END //
+
+CREATE PROCEDURE sp_book_get_by_id(
+    IN p_bookID INT
+)
+BEGIN
+    SELECT
+        b.bookID,
+        b.title,
+        b.author,
+        b.categoryID,
+        c.category_name,
+        b.total_copies,
+        b.available_copies,
+        b.year_published,
+        fn_book_availability_status(b.available_copies) AS availability_status
+    FROM books b
+    INNER JOIN categories c ON c.categoryID = b.categoryID
+    WHERE b.bookID = p_bookID
+    LIMIT 1;
 END //
 
 CREATE PROCEDURE sp_borrower_save(
