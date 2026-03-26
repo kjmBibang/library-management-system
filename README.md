@@ -74,25 +74,6 @@ Business logic and reporting are pushed into the database layer:
 - Views: books catalog, active/overdue transactions, borrower history
 - Events: auto-overdue updates, penalty refresh, status synchronization
 
-## DCL Clarification (Important)
-
-`ENUM('admin','staff')` is **not DCL**.
-
-- `ENUM` is a data type/constraint (DDL).
-- DCL = permission commands such as `GRANT` and `REVOKE`.
-
-For defense/panel discussion, role values in table data are **application roles**, while DCL is about **database account privileges**.
-
-## Setup
-
-1. Start Apache and MySQL in XAMPP.
-2. Create/import database by running:
-   - `seed-file/seed.sql`
-3. (Optional, panel/demo) apply DCL permissions script:
-  - `seed-file/dcl.sql`
-4. Open in browser:
-   - `http://localhost/library-management-system/`
-
 ## Auth and Access
 
 - Public pages:
@@ -100,18 +81,3 @@ For defense/panel discussion, role values in table data are **application roles*
   - `login.php`
   - `signup.php`
 - Protected pages require session and role checks via `includes/auth_guard.php`.
-
-## Notes for Developers
-
-- Handlers are grouped by feature in `handlers/`.
-- Shared utilities go under `includes/`.
-- DB connectivity stays in `config/db_connect.php`.
-- Keep SQL in stored procedures/views as much as possible (API-layer style).
-
-## Next Recommended Improvements
-
-- Borrowers module DB wiring and CRUD handlers
-- Borrow/return transaction UI and handlers
-- Dashboard live stats from `sp_dashboard_summary`
-- Pagination for books/borrowers lists
-- Optional: migration-style SQL files (`seed-file/migrations`) for long-term maintainability
