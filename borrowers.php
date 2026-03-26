@@ -1,21 +1,21 @@
-<?php
+﻿<?php
 require_once __DIR__ . '/includes/auth_guard.php';
 require_once __DIR__ . '/config/db_connect.php';
 
 if (function_exists('require_auth')) {
-	require_auth(['admin', 'staff']);
+    require_auth(['admin', 'staff']);
 } else {
-	header('Location: /library-management-system/login.php');
-	exit();
+    header('Location: /library-management-system/login.php');
+    exit();
 }
 
 function clearStoredResults(mysqli $conn): void
 {
-	while ($conn->more_results() && $conn->next_result()) {
-		if ($result = $conn->store_result()) {
-			$result->free();
-		}
-	}
+    while ($conn->more_results() && $conn->next_result()) {
+        if ($result = $conn->store_result()) {
+            $result->free();
+        }
+    }
 }
 
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -23,29 +23,31 @@ $borrowers = [];
 $dbError = '';
 
 try {
-	$stmt = $conn->prepare('CALL sp_borrower_search(?, ?, ?)');
-	if ($stmt) {
-		$limitRows = 200;
-		$offsetRows = 0;
-		$stmt->bind_param('sii', $search, $limitRows, $offsetRows);
-		$stmt->execute();
+    $stmt = $conn->prepare('CALL sp_borrower_search(?, ?, ?)');
+    if ($stmt) {
+        $limitRows = 200;
+        $offsetRows = 0;
+        $stmt->bind_param('sii', $search, $limitRows, $offsetRows);
+        $stmt->execute();
 
-		$result = $stmt->get_result();
-		if ($result) {
-			while ($row = $result->fetch_assoc()) {
-				$borrowers[] = $row;
-			}
-			$result->free();
-		}
+        $result = $stmt->get_result();
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $borrowers[] = $row;
+            }
+            $result->free();
+        }
 
-		$stmt->close();
-		clearStoredResults($conn);
-	}
+        $stmt->close();
+        clearStoredResults($conn);
+    }
 } catch (mysqli_sql_exception $e) {
-	$dbError = $e->getMessage();
+    $dbError = $e->getMessage();
 }
 
 $conn->close();
+
+$openRegisterForm = isset($_GET['error']);
 ?>
 
 <!DOCTYPE html>
@@ -56,6 +58,55 @@ $conn->close();
 <title>Borrowers</title>
 
 <link rel="stylesheet" href="css/style.css">
+<style>
+.borrowers-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.borrowers-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.borrowers-subtext {
+    color: #667085;
+    margin-top: 4px;
+}
+
+.borrowers-table-wrap {
+    margin-top: 20px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow-x: auto;
+}
+
+.borrowers-register-panel {
+    margin-top: 20px;
+    padding: 18px;
+    border: 1px solid #dbe6f0;
+    border-radius: 10px;
+    background: #f9fcff;
+}
+
+.borrowers-register-panel h2 {
+    margin-bottom: 10px;
+}
+
+.borrowers-register-panel.is-hidden {
+    display: none;
+}
+
+.borrowers-stats {
+    margin-top: 12px;
+    color: #475467;
+    font-size: 0.95rem;
+}
+</style>
 
 </head>
 
@@ -76,8 +127,15 @@ $conn->close();
 
 
 <section>
+<div class="borrowers-shell">
 
+<div class="borrowers-topbar">
+<div>
 <h1>Borrowers Management</h1>
+<p class="borrowers-subtext">Track registered members and quickly add new borrowers.</p>
+</div>
+<button type="button" id="toggleRegisterBtn" class="primary-btn"><?php echo $openRegisterForm ? 'Hide Register Form' : '+ Register Borrower'; ?></button>
+</div>
 
 <?php if ($dbError !== ''): ?>
 <div class="error-alert">Unable to load borrowers right now: <?php echo htmlspecialchars($dbError); ?></div>
@@ -110,7 +168,9 @@ $conn->close();
 </div>
 </form>
 
+<p class="borrowers-stats">Total results: <?php echo count($borrowers); ?></p>
 
+<div class="borrowers-table-wrap">
 <table class="data-table">
 
 <thead>
@@ -144,9 +204,9 @@ $conn->close();
 </tbody>
 
 </table>
+</div>
 
-
-
+<div id="registerPanel" class="borrowers-register-panel <?php echo $openRegisterForm ? '' : 'is-hidden'; ?>">
 <h2>Register Borrower</h2>
 
 <form action="handlers/borrowers/process_borrower_register.php" method="POST">
@@ -166,9 +226,26 @@ $conn->close();
 <button type="submit" class="primary-btn">Register</button>
 
 </form>
+</div>
 
-
+</div>
 </section>
+
+<script>
+(function () {
+    var registerPanel = document.getElementById('registerPanel');
+    var toggleBtn = document.getElementById('toggleRegisterBtn');
+
+    if (!registerPanel || !toggleBtn) {
+        return;
+    }
+
+    toggleBtn.addEventListener('click', function () {
+        var isHidden = registerPanel.classList.toggle('is-hidden');
+        toggleBtn.textContent = isHidden ? '+ Register Borrower' : 'Hide Register Form';
+    });
+})();
+</script>
 
 </body>
 </html>
