@@ -284,6 +284,7 @@ $conn->close();
                         <th>Borrower</th>
                         <th>Borrow Date</th>
                         <th>Due Date</th>
+                        <th>Due Tracking</th>
                         <th>Status</th>
                         <th>Overdue Days</th>
                     </tr>
@@ -291,16 +292,30 @@ $conn->close();
                 <tbody>
                     <?php if (count($activeBorrows) === 0): ?>
                         <tr>
-                            <td colspan="7">No active borrows right now.</td>
+                            <td colspan="8">No active borrows right now.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($activeBorrows as $tx): ?>
                             <?php
                                 $dueTimestamp = strtotime((string) $tx['due_date']);
+                                $secondsDiff = $dueTimestamp !== false ? $dueTimestamp - time() : 0;
                                 $isPastDueNow = $dueTimestamp !== false && $dueTimestamp < time();
                                 $isOverdue = $isPastDueNow || (int) $tx['current_days_overdue'] > 0 || strtolower((string) $tx['status']) === 'overdue';
                                 $statusClass = $isOverdue ? 'status-pill overdue' : 'status-pill';
                                 $rowClass = $isOverdue ? 'row-overdue' : '';
+
+                                if ($dueTimestamp === false) {
+                                    $dueTrackingText = 'Unknown due date';
+                                } elseif ($secondsDiff >= 0) {
+                                    $hoursRemaining = (int) floor($secondsDiff / 3600);
+                                    $minutesRemaining = (int) floor(($secondsDiff % 3600) / 60);
+                                    $dueTrackingText = 'Due in ' . $hoursRemaining . 'h ' . $minutesRemaining . 'm';
+                                } else {
+                                    $lateSeconds = abs($secondsDiff);
+                                    $hoursLate = (int) floor($lateSeconds / 3600);
+                                    $minutesLate = (int) floor(($lateSeconds % 3600) / 60);
+                                    $dueTrackingText = 'Overdue by ' . $hoursLate . 'h ' . $minutesLate . 'm';
+                                }
                             ?>
                             <tr class="<?php echo $rowClass; ?>" data-due-date="<?php echo htmlspecialchars((string) $tx['due_date']); ?>">
                                 <td><?php echo (int) $tx['transactionID']; ?></td>
@@ -308,6 +323,7 @@ $conn->close();
                                 <td><?php echo htmlspecialchars($tx['borrower_name']); ?></td>
                                 <td><?php echo htmlspecialchars((string) $tx['borrow_date']); ?></td>
                                 <td><?php echo htmlspecialchars((string) $tx['due_date']); ?></td>
+                                <td class="js-due-tracking"><?php echo htmlspecialchars($dueTrackingText); ?></td>
                                 <td><span class="<?php echo $statusClass; ?> js-status-pill"><?php echo $isOverdue ? 'Overdue' : 'Active'; ?></span></td>
                                 <td><?php echo (int) $tx['current_days_overdue']; ?></td>
                             </tr>
@@ -340,8 +356,23 @@ $conn->close();
                         return;
                     }
 
-                    var isOverdue = dueDate.getTime() < now.getTime();
+                    var diffMs = dueDate.getTime() - now.getTime();
+                    var isOverdue = diffMs < 0;
                     var pill = row.querySelector('.js-status-pill');
+                    var dueTrackingCell = row.querySelector('.js-due-tracking');
+
+                    if (dueTrackingCell) {
+                        var absMs = Math.abs(diffMs);
+                        var totalMinutes = Math.floor(absMs / 60000);
+                        var hours = Math.floor(totalMinutes / 60);
+                        var minutes = totalMinutes % 60;
+
+                        if (isOverdue) {
+                            dueTrackingCell.textContent = 'Overdue by ' + hours + 'h ' + minutes + 'm';
+                        } else {
+                            dueTrackingCell.textContent = 'Due in ' + hours + 'h ' + minutes + 'm';
+                        }
+                    }
 
                     if (isOverdue) {
                         row.classList.add('row-overdue');
@@ -349,6 +380,10 @@ $conn->close();
                             pill.classList.add('overdue');
                             pill.textContent = 'Overdue';
                         }
+                    } else if (pill) {
+                        row.classList.remove('row-overdue');
+                        pill.classList.remove('overdue');
+                        pill.textContent = 'Active';
                     }
                 });
             }
