@@ -1,6 +1,6 @@
 <?php
 
-require_once 'db_connect.php';
+require_once '../../config/db_connect.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
@@ -9,7 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $plain_password = $_POST['password'];
 
     if (!in_array($role, ['admin', 'staff'], true)) {
-        header("Location: signup.php?error=invalid_role");
+        header("Location: ../../signup.php?error=invalid_role");
         exit();
     }
 
@@ -24,11 +24,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         $stmt->execute();
-        header("Location: signup.php?success=1");
+        header("Location: ../../signup.php?success=1");
         exit();
     } catch (mysqli_sql_exception $e) {
         if ($e->getCode() === 1644 || stripos($e->getMessage(), 'Username already exists') !== false) {
-            header("Location: signup.php?error=exists");
+            header("Location: ../../signup.php?error=exists");
             exit();
         }
 
@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn->close();
 } else {
     
-    header("Location: signup.php");
+    header("Location: ../../signup.php");
     exit();
 }
 ?>

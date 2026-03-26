@@ -1,7 +1,7 @@
 <?php
-require_once 'auth_guard.php';
+require_once 'includes/auth_guard.php';
 require_auth(['admin', 'staff']);
-require_once 'db_connect.php';
+require_once 'config/db_connect.php';
 
 $bookId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
@@ -62,7 +62,7 @@ if (!$book && $dbError === '') {
             <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="books.php">Books</a></li>
             <li><a href="borrowers.php">Borrowers</a></li>
-            <li><a href="logout.php" class="login-btn">Logout</a></li>
+            <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>
 
@@ -82,7 +82,7 @@ if (!$book && $dbError === '') {
             <div class="error-alert">Unable to update book right now. Please try again.</div>
         <?php endif; ?>
 
-        <form action="process_book_edit.php" method="POST">
+        <form action="handlers/books/process_book_edit.php" method="POST">
             <input type="hidden" name="book_id" value="<?php echo $bookId; ?>">
 
             <label for="title">Title</label><br>

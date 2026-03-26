@@ -35,7 +35,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="process_signup.php" method="POST">
+            <form action="handlers/auth/process_signup.php" method="POST">
                 <div class="input-group">
                     <label for="username">Create Username</label>
                     <input type="text" id="username" name="username" placeholder="e.g. john_doe" required>

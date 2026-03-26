@@ -1,10 +1,10 @@
 <?php
-require_once 'auth_guard.php';
+require_once '../../includes/auth_guard.php';
 require_auth(['admin', 'staff']);
-require_once 'db_connect.php';
+require_once '../../config/db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: books.php');
+    header('Location: ../../books.php');
     exit();
 }
 
@@ -17,12 +17,12 @@ $totalCopies = isset($_POST['total_copies']) ? (int) $_POST['total_copies'] : -1
 $availableCopies = isset($_POST['available_copies']) ? (int) $_POST['available_copies'] : -1;
 
 if ($bookId <= 0 || $title === '' || $author === '' || $category === '' || $yearPublished <= 0 || $totalCopies < 0 || $availableCopies < 0 || $availableCopies > $totalCopies) {
-    header('Location: book_edit.php?id=' . $bookId . '&error=invalid');
+    header('Location: ../../book_edit.php?id=' . $bookId . '&error=invalid');
     exit();
 }
 
 if ($yearPublished < 1000 || $yearPublished > 9999) {
-    header('Location: book_edit.php?id=' . $bookId . '&error=invalid');
+    header('Location: ../../book_edit.php?id=' . $bookId . '&error=invalid');
     exit();
 }
 
@@ -71,10 +71,10 @@ try {
     }
 
     $conn->close();
-    header('Location: books.php?book_updated=1');
+    header('Location: ../../books.php?book_updated=1');
     exit();
 } catch (Throwable $e) {
     $conn->close();
-    header('Location: book_edit.php?id=' . $bookId . '&error=db');
+    header('Location: ../../book_edit.php?id=' . $bookId . '&error=db');
     exit();
 }

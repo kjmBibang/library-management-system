@@ -29,7 +29,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="process_login.php" method="POST">
+            <form action="handlers/auth/process_login.php" method="POST">
                 <div class="input-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" placeholder="e.g. john_doe" required>

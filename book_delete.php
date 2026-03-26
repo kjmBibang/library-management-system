@@ -1,7 +1,7 @@
 <?php
-require_once 'auth_guard.php';
+require_once 'includes/auth_guard.php';
 require_auth(['admin', 'staff']);
-require_once 'db_connect.php';
+require_once 'config/db_connect.php';
 
 $bookId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
@@ -61,7 +61,7 @@ if (!$book) {
             <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="books.php">Books</a></li>
             <li><a href="borrowers.php">Borrowers</a></li>
-            <li><a href="logout.php" class="login-btn">Logout</a></li>
+            <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>
 
@@ -71,7 +71,7 @@ if (!$book) {
             This action cannot be undone. Are you sure you want to delete <strong><?php echo htmlspecialchars($book['title']); ?></strong> by <strong><?php echo htmlspecialchars($book['author']); ?></strong>?
         </div>
 
-        <form action="process_book_delete.php" method="POST">
+        <form action="handlers/books/process_book_delete.php" method="POST">
             <input type="hidden" name="book_id" value="<?php echo $bookId; ?>">
             <button type="submit" class="primary-btn" style="background:#e74c3c;">Yes, Delete</button>
             <a href="books.php" class="primary-btn" style="background:#7f8c8d;">Cancel</a>
