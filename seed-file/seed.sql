@@ -110,6 +110,7 @@ DROP PROCEDURE IF EXISTS sp_auth_get_user;
 
 DROP FUNCTION IF EXISTS fn_compute_penalty;
 DROP FUNCTION IF EXISTS fn_days_overdue;
+DROP PROCEDURE IF EXISTS sp_transaction_active_list;
 DROP FUNCTION IF EXISTS fn_book_availability_status;
 
 DELIMITER //
@@ -142,6 +143,34 @@ CREATE FUNCTION fn_compute_penalty(
 DETERMINISTIC
 BEGIN
     RETURN ROUND(fn_days_overdue(p_due_date, p_reference_date) * p_daily_rate, 2);
+END //
+
+CREATE PROCEDURE sp_transaction_active_list(
+    IN p_limit_rows INT,
+    IN p_offset_rows INT
+)
+BEGIN
+    SET p_limit_rows = COALESCE(NULLIF(p_limit_rows, 0), 20);
+    SET p_offset_rows = COALESCE(p_offset_rows, 0);
+
+    SELECT
+        transactionID,
+        bookID,
+        title,
+        author,
+        borrowerID,
+        borrower_name,
+        processed_by,
+        processed_by_username,
+        borrow_date,
+        due_date,
+        return_date,
+        status,
+        penalty_fee,
+        current_days_overdue
+    FROM vw_active_overdue_transactions
+    ORDER BY due_date ASC
+    LIMIT p_limit_rows OFFSET p_offset_rows;
 END //
 
 CREATE PROCEDURE sp_auth_get_user(

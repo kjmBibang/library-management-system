@@ -120,6 +120,7 @@ $openRegisterForm = isset($_GET['error']);
 <li><a href="dashboard.php">Dashboard</a></li>
 <li><a href="books.php">Books</a></li>
 <li><a href="borrowers.php">Borrowers</a></li>
+<li><a href="transactions.php">Transactions</a></li>
 <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
 </ul>
 

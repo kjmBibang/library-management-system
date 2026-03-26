@@ -1,6 +1,12 @@
 <?php
-require_once 'includes/auth_guard.php';
-require_auth(['admin', 'staff']);
+require_once __DIR__ . '/includes/auth_guard.php';
+
+if (function_exists('require_auth')) {
+    require_auth(['admin', 'staff']);
+} else {
+    header('Location: /library-management-system/login.php');
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -18,6 +24,7 @@ require_auth(['admin', 'staff']);
             <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="books.php">Books</a></li>
             <li><a href="borrowers.php">Borrowers</a></li>
+            <li><a href="transactions.php">Transactions</a></li>
             <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>

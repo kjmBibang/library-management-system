@@ -1,0 +1,280 @@
+<?php
+require_once __DIR__ . '/includes/auth_guard.php';
+require_once __DIR__ . '/config/db_connect.php';
+
+if (function_exists('require_auth')) {
+    require_auth(['admin', 'staff']);
+} else {
+    header('Location: /library-management-system/login.php');
+    exit();
+}
+
+function clearStoredResults(mysqli $conn): void
+{
+    while ($conn->more_results() && $conn->next_result()) {
+        if ($result = $conn->store_result()) {
+            $result->free();
+        }
+    }
+}
+
+$books = [];
+$borrowers = [];
+$activeBorrows = [];
+$dbError = '';
+
+try {
+    $bookStmt = $conn->prepare('CALL sp_book_search(?, ?, ?, ?)');
+    if ($bookStmt) {
+        $search = '';
+        $categoryId = 0;
+        $limitRows = 200;
+        $offsetRows = 0;
+        $bookStmt->bind_param('siii', $search, $categoryId, $limitRows, $offsetRows);
+        $bookStmt->execute();
+
+        $bookResult = $bookStmt->get_result();
+        if ($bookResult) {
+            while ($row = $bookResult->fetch_assoc()) {
+                if ((int) $row['available_copies'] > 0) {
+                    $books[] = $row;
+                }
+            }
+            $bookResult->free();
+        }
+
+        $bookStmt->close();
+        clearStoredResults($conn);
+    }
+
+    $borrowerStmt = $conn->prepare('CALL sp_borrower_search(?, ?, ?)');
+    if ($borrowerStmt) {
+        $searchBorrower = '';
+        $borrowerLimit = 200;
+        $borrowerOffset = 0;
+        $borrowerStmt->bind_param('sii', $searchBorrower, $borrowerLimit, $borrowerOffset);
+        $borrowerStmt->execute();
+
+        $borrowerResult = $borrowerStmt->get_result();
+        if ($borrowerResult) {
+            while ($row = $borrowerResult->fetch_assoc()) {
+                $borrowers[] = $row;
+            }
+            $borrowerResult->free();
+        }
+
+        $borrowerStmt->close();
+        clearStoredResults($conn);
+    }
+
+    $activeStmt = $conn->prepare('CALL sp_transaction_active_list(?, ?)');
+    if ($activeStmt) {
+        $activeLimit = 200;
+        $activeOffset = 0;
+        $activeStmt->bind_param('ii', $activeLimit, $activeOffset);
+        $activeStmt->execute();
+
+        $activeResult = $activeStmt->get_result();
+        if ($activeResult) {
+            while ($row = $activeResult->fetch_assoc()) {
+                $activeBorrows[] = $row;
+            }
+            $activeResult->free();
+        }
+
+        $activeStmt->close();
+        clearStoredResults($conn);
+    }
+} catch (mysqli_sql_exception $e) {
+    $dbError = $e->getMessage();
+}
+
+$conn->close();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions | BryceLibrary</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tx-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .tx-card {
+            background: #fff;
+            border: 1px solid #dbe6f0;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .tx-card h2 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .tx-card select,
+        .tx-card input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .tx-list-wrap {
+            margin-top: 20px;
+            background: #fff;
+            border: 1px solid #dbe6f0;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #eef2f7;
+            color: #2c3e50;
+        }
+
+        .status-pill.overdue {
+            background: #fdeaea;
+            color: #c0392b;
+        }
+
+        .row-overdue {
+            background: #fff6f6 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">Bryce<span>Library</span></div>
+        <ul class="nav-links">
+            <li><a href="dashboard.php">Dashboard</a></li>
+            <li><a href="books.php">Books</a></li>
+            <li><a href="borrowers.php">Borrowers</a></li>
+            <li><a href="transactions.php">Transactions</a></li>
+            <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
+        </ul>
+    </nav>
+
+    <section>
+        <h1>Borrow and Return Transactions</h1>
+        <p>UI prep: forms and list are ready for full transaction logic wiring.</p>
+
+        <?php if ($dbError !== ''): ?>
+            <div class="error-alert">Unable to load transaction data right now: <?php echo htmlspecialchars($dbError); ?></div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['notice']) && $_GET['notice'] === 'borrow_ui_ready'): ?>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Borrow form submitted. Handler stub is ready for DB logic integration.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['notice']) && $_GET['notice'] === 'return_ui_ready'): ?>
+            <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Return form submitted. Handler stub is ready for DB logic integration.</div>
+        <?php endif; ?>
+
+        <div class="tx-grid">
+            <div class="tx-card">
+                <h2>Borrow a Book</h2>
+                <form action="handlers/transactions/process_borrow.php" method="POST">
+                    <label for="borrow_book_id">Available Book</label><br>
+                    <select id="borrow_book_id" name="book_id" required>
+                        <option value="">Select available book</option>
+                        <?php foreach ($books as $book): ?>
+                            <option value="<?php echo (int) $book['bookID']; ?>">
+                                <?php echo htmlspecialchars($book['title']); ?> (<?php echo (int) $book['available_copies']; ?> available)
+                            </option>
+                        <?php endforeach; ?>
+                    </select><br><br>
+
+                    <label for="borrow_borrower_id">Borrower</label><br>
+                    <select id="borrow_borrower_id" name="borrower_id" required>
+                        <option value="">Select borrower</option>
+                        <?php foreach ($borrowers as $borrower): ?>
+                            <option value="<?php echo (int) $borrower['borrowerID']; ?>">
+                                <?php echo htmlspecialchars($borrower['full_name']); ?> (<?php echo htmlspecialchars($borrower['email']); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select><br><br>
+
+                    <label for="borrow_due_date">Due Date</label><br>
+                    <input type="datetime-local" id="borrow_due_date" name="due_date" required><br><br>
+
+                    <button type="submit" class="primary-btn">Confirm Borrow</button>
+                </form>
+            </div>
+
+            <div class="tx-card">
+                <h2>Return a Book</h2>
+                <form action="handlers/transactions/process_return.php" method="POST">
+                    <label for="return_transaction_id">Active Transaction</label><br>
+                    <select id="return_transaction_id" name="transaction_id" required>
+                        <option value="">Select active transaction</option>
+                        <?php foreach ($activeBorrows as $tx): ?>
+                            <option value="<?php echo (int) $tx['transactionID']; ?>">
+                                TX #<?php echo (int) $tx['transactionID']; ?> - <?php echo htmlspecialchars($tx['title']); ?> (<?php echo htmlspecialchars($tx['borrower_name']); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select><br><br>
+
+                    <label for="return_date">Return Date</label><br>
+                    <input type="datetime-local" id="return_date" name="return_date" required><br><br>
+
+                    <button type="submit" class="primary-btn">Confirm Return</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="tx-list-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>TX ID</th>
+                        <th>Book</th>
+                        <th>Borrower</th>
+                        <th>Borrow Date</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Overdue Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (count($activeBorrows) === 0): ?>
+                        <tr>
+                            <td colspan="7">No active borrows right now.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($activeBorrows as $tx): ?>
+                            <?php
+                                $isOverdue = (int) $tx['current_days_overdue'] > 0 || strtolower((string) $tx['status']) === 'overdue';
+                                $statusClass = $isOverdue ? 'status-pill overdue' : 'status-pill';
+                                $rowClass = $isOverdue ? 'row-overdue' : '';
+                            ?>
+                            <tr class="<?php echo $rowClass; ?>">
+                                <td><?php echo (int) $tx['transactionID']; ?></td>
+                                <td><?php echo htmlspecialchars($tx['title']); ?></td>
+                                <td><?php echo htmlspecialchars($tx['borrower_name']); ?></td>
+                                <td><?php echo htmlspecialchars((string) $tx['borrow_date']); ?></td>
+                                <td><?php echo htmlspecialchars((string) $tx['due_date']); ?></td>
+                                <td><span class="<?php echo $statusClass; ?>"><?php echo $isOverdue ? 'Overdue' : 'Active'; ?></span></td>
+                                <td><?php echo (int) $tx['current_days_overdue']; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</body>
+</html>

@@ -24,6 +24,7 @@ if (function_exists('require_auth')) {
             <li><a href="dashboard.php">Dashboard</a></li>
             <li><a href="books.php">Books</a></li>
             <li><a href="borrowers.php">Borrowers</a></li>
+            <li><a href="transactions.php">Transactions</a></li>
             <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
         </ul>
     </nav>
@@ -33,6 +34,7 @@ if (function_exists('require_auth')) {
         <p>You have successfully accessed the BryceLibrary dashboard.</p>
         <a href="books.php" class="primary-btn">Go to Books</a>
         <a href="borrowers.php" class="primary-btn">Borrowers</a>
+        <a href="transactions.php" class="primary-btn">Transactions</a>
     </section>
 
     <section class="section bg-light">
