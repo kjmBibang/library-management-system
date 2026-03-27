@@ -76,6 +76,10 @@ CREATE TABLE IF NOT EXISTS transactions (
         CHECK (penalty_fee IS NULL OR penalty_fee >= 0)
 );
 
+-- Keep existing databases aligned: convert legacy YEAR to numeric year storage.
+ALTER TABLE books
+    MODIFY year_published SMALLINT UNSIGNED;
+
 DROP INDEX IF EXISTS idx_books_title_author ON books;
 DROP INDEX IF EXISTS idx_transactions_status_due ON transactions;
 
