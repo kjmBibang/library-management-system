@@ -37,6 +37,10 @@ if (function_exists('require_auth')) {
             <div class="error-alert">Please provide valid values for all required fields.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'invalid_year'): ?>
+            <div class="error-alert">Year published must be between 1 and 9999.</div>
+        <?php endif; ?>
+
         <?php if (isset($_GET['error']) && $_GET['error'] === 'db'): ?>
             <div class="error-alert">Unable to save book right now. Please try again.</div>
         <?php endif; ?>
@@ -52,7 +56,7 @@ if (function_exists('require_auth')) {
             <input type="text" id="category" name="category" required><br><br>
 
             <label for="year_published">Year Published</label><br>
-            <input type="number" id="year_published" name="year_published" min="1000" max="9999" required><br><br>
+            <input type="number" id="year_published" name="year_published" min="1" max="9999" required><br><br>
 
             <label for="total_copies">Total Copies</label><br>
             <input type="number" id="total_copies" name="total_copies" min="0" required><br><br>

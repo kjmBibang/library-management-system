@@ -20,8 +20,8 @@ if ($title === '' || $author === '' || $category === '' || $yearPublished <= 0 |
     exit();
 }
 
-if ($yearPublished < 1000 || $yearPublished > 9999) {
-    header('Location: ../../book_add.php?error=invalid');
+if ($yearPublished < 1 || $yearPublished > 9999) {
+    header('Location: ../../book_add.php?error=invalid_year');
     exit();
 }
 

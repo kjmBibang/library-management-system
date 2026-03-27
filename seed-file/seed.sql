@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS books (
     categoryID INT(11) NOT NULL,
     total_copies INT(11) NOT NULL DEFAULT 0,
     available_copies INT(11) NOT NULL DEFAULT 0,
-    year_published YEAR,
+    year_published SMALLINT UNSIGNED,
     CONSTRAINT fk_books_category
         FOREIGN KEY (categoryID)
         REFERENCES categories(categoryID)
@@ -247,7 +247,7 @@ CREATE PROCEDURE sp_book_save(
     IN p_categoryID INT,
     IN p_total_copies INT,
     IN p_available_copies INT,
-    IN p_year_published YEAR
+    IN p_year_published SMALLINT UNSIGNED
 )
 BEGIN
     IF p_total_copies < 0 OR p_available_copies < 0 THEN
@@ -256,6 +256,10 @@ BEGIN
 
     IF p_available_copies > p_total_copies THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Available copies cannot exceed total copies';
+    END IF;
+
+    IF p_year_published IS NOT NULL AND (p_year_published < 1 OR p_year_published > 9999) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Year must be between 1 and 9999';
     END IF;
 
     IF p_bookID IS NULL OR p_bookID = 0 THEN

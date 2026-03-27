@@ -86,6 +86,10 @@ if (!$book && $dbError === '') {
             <div class="error-alert">Please provide valid values for all required fields.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'invalid_year'): ?>
+            <div class="error-alert">Year published must be between 1 and 9999.</div>
+        <?php endif; ?>
+
         <?php if (isset($_GET['error']) && $_GET['error'] === 'db'): ?>
             <div class="error-alert">Unable to update book right now. Please try again.</div>
         <?php endif; ?>
@@ -103,7 +107,7 @@ if (!$book && $dbError === '') {
             <input type="text" id="category" name="category" value="<?php echo htmlspecialchars($book['category_name']); ?>" required><br><br>
 
             <label for="year_published">Year Published</label><br>
-            <input type="number" id="year_published" name="year_published" min="1000" max="9999" value="<?php echo (int) $book['year_published']; ?>" required><br><br>
+            <input type="number" id="year_published" name="year_published" min="1" max="9999" value="<?php echo (int) $book['year_published'] > 0 ? (int) $book['year_published'] : ''; ?>" required><br><br>
 
             <label for="total_copies">Total Copies</label><br>
             <input type="number" id="total_copies" name="total_copies" min="0" value="<?php echo (int) $book['total_copies']; ?>" required><br><br>

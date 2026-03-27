@@ -172,7 +172,7 @@ $conn->close();
                             <td><?php echo htmlspecialchars($book['title']); ?></td>
                             <td><?php echo htmlspecialchars($book['author']); ?></td>
                             <td><?php echo htmlspecialchars($book['category_name']); ?></td>
-                            <td><?php echo (int) $book['year_published']; ?></td>
+                            <td><?php echo (int) $book['year_published'] > 0 ? (int) $book['year_published'] : 'N/A'; ?></td>
                             <td><?php echo (int) $book['total_copies']; ?></td>
                             <td><?php echo (int) $book['available_copies']; ?></td>
                             <td><?php echo htmlspecialchars($book['availability_status']); ?></td>

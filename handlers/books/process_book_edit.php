@@ -21,8 +21,8 @@ if ($bookId <= 0 || $title === '' || $author === '' || $category === '' || $year
     exit();
 }
 
-if ($yearPublished < 1000 || $yearPublished > 9999) {
-    header('Location: ../../book_edit.php?id=' . $bookId . '&error=invalid');
+if ($yearPublished < 1 || $yearPublished > 9999) {
+    header('Location: ../../book_edit.php?id=' . $bookId . '&error=invalid_year');
     exit();
 }
 
