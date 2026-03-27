@@ -22,6 +22,12 @@ function clearStoredResults(mysqli $conn): void
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : 0;
 
+/* Mabanag: Books pagination logic */
+$limitRows = 10; 
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max(1, $page); // Ensure page is at least 1
+$offsetRows = ($page - 1) * $limitRows;
+
 $categories = [];
 $filteredBooks = [];
 $dbError = '';
@@ -45,8 +51,7 @@ try {
 
     $bookStmt = $conn->prepare("CALL sp_book_search(?, ?, ?, ?)");
     if ($bookStmt) {
-        $limitRows = 200;
-        $offsetRows = 0;
+        // Mabanag: Using dynamic limit and offset
         $bookStmt->bind_param("siii", $search, $categoryId, $limitRows, $offsetRows);
         $bookStmt->execute();
 
@@ -106,18 +111,6 @@ $conn->close();
 
         <?php if (isset($_GET['book_deleted'])): ?>
             <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book deleted successfully.</div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['error']) && $_GET['error'] === 'cannot_delete_active'): ?>
-            <div class="error-alert">Cannot delete this book because it has active borrowed or overdue transactions.</div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['error']) && $_GET['error'] === 'delete_failed'): ?>
-            <div class="error-alert">Delete failed. Please try again.</div>
-        <?php endif; ?>
-
-        <?php if (isset($_GET['error']) && $_GET['error'] === 'not_found'): ?>
-            <div class="error-alert">Book not found.</div>
         <?php endif; ?>
 
         <a href="book_add.php" class="primary-btn">+ Add Book</a>
@@ -185,6 +178,18 @@ $conn->close();
                 <?php endif; ?>
             </tbody>
         </table>
+
+        <div class="pagination" style="margin-top: 20px; text-align: center; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?php echo $page - 1; ?>&q=<?php echo urlencode($search); ?>&category_id=<?php echo $categoryId; ?>" class="primary-btn">Prev</a>
+            <?php endif; ?>
+            
+            <span style="font-weight: bold; color: #2c3e50;">Page <?php echo $page; ?></span>
+            
+            <?php if (count($filteredBooks) === $limitRows): ?>
+                <a href="?page=<?php echo $page + 1; ?>&q=<?php echo urlencode($search); ?>&category_id=<?php echo $categoryId; ?>" class="primary-btn">Next</a>
+            <?php endif; ?>
+        </div>
     </section>
 
 </body>

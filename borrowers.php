@@ -22,11 +22,16 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 $borrowers = [];
 $dbError = '';
 
+/* Mabanag: Borrowers pagination logic */
+$limitRows = 10; // Stable page size
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = max(1, $page);
+$offsetRows = ($page - 1) * $limitRows;
+
 try {
     $stmt = $conn->prepare('CALL sp_borrower_search(?, ?, ?)');
     if ($stmt) {
-        $limitRows = 200;
-        $offsetRows = 0;
+        // Updated to use dynamic pagination variables
         $stmt->bind_param('sii', $search, $limitRows, $offsetRows);
         $stmt->execute();
 
@@ -55,8 +60,7 @@ $openRegisterForm = isset($_GET['error']);
 
 <head>
 <meta charset="UTF-8">
-<title>Borrowers</title>
-
+<title>Borrowers | BryceLibrary</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
 .borrowers-shell {
@@ -106,6 +110,15 @@ $openRegisterForm = isset($_GET['error']);
     color: #475467;
     font-size: 0.95rem;
 }
+
+/* Mabanag: Pagination UI Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 25px;
+}
 </style>
 
 </head>
@@ -113,9 +126,7 @@ $openRegisterForm = isset($_GET['error']);
 <body>
 
 <nav class="navbar">
-
 <div class="logo">Bryce<span>Library</span></div>
-
 <ul class="nav-links">
 <li><a href="dashboard.php">Dashboard</a></li>
 <li><a href="books.php">Books</a></li>
@@ -123,9 +134,7 @@ $openRegisterForm = isset($_GET['error']);
 <li><a href="transactions.php">Transactions</a></li>
 <li><a href="handlers/auth/logout.php" class="login-btn">Logout</a></li>
 </ul>
-
 </nav>
-
 
 <section>
 <div class="borrowers-shell">
@@ -146,18 +155,6 @@ $openRegisterForm = isset($_GET['error']);
 <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Borrower registered successfully.</div>
 <?php endif; ?>
 
-<?php if (isset($_GET['error']) && $_GET['error'] === 'invalid'): ?>
-<div class="error-alert">Please provide valid borrower details.</div>
-<?php endif; ?>
-
-<?php if (isset($_GET['error']) && $_GET['error'] === 'exists'): ?>
-<div class="error-alert">Borrower email already exists.</div>
-<?php endif; ?>
-
-<?php if (isset($_GET['error']) && $_GET['error'] === 'db'): ?>
-<div class="error-alert">Unable to register borrower right now. Please try again.</div>
-<?php endif; ?>
-
 <form action="borrowers.php" method="GET" style="margin-top: 15px; display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
 <div>
 <label for="q">Search Borrowers</label><br>
@@ -169,11 +166,10 @@ $openRegisterForm = isset($_GET['error']);
 </div>
 </form>
 
-<p class="borrowers-stats">Total results: <?php echo count($borrowers); ?></p>
+<p class="borrowers-stats">Showing page <?php echo $page; ?></p>
 
 <div class="borrowers-table-wrap">
 <table class="data-table">
-
 <thead>
 <tr>
 <th>Borrower ID</th>
@@ -181,14 +177,13 @@ $openRegisterForm = isset($_GET['error']);
 <th>Email</th>
 <th>Contact</th>
 <th>Registered Date</th>
+<th>Actions</th>
 </tr>
 </thead>
-
 <tbody>
-
 <?php if (count($borrowers) === 0): ?>
 <tr>
-<td colspan="5">No borrowers found.</td>
+<td colspan="6">No borrowers found.</td>
 </tr>
 <?php else: ?>
 <?php foreach ($borrowers as $borrower): ?>
@@ -198,34 +193,41 @@ $openRegisterForm = isset($_GET['error']);
 <td><?php echo htmlspecialchars($borrower['email']); ?></td>
 <td><?php echo htmlspecialchars($borrower['contact_number']); ?></td>
 <td><?php echo htmlspecialchars((string) $borrower['registered_date']); ?></td>
+<td>
+    <a href="borrower_history.php?id=<?php echo (int) $borrower['borrowerID']; ?>" class="primary-btn" style="background:#2ecc71; font-size: 0.8rem;">History</a>
+</td>
 </tr>
 <?php endforeach; ?>
 <?php endif; ?>
-
 </tbody>
-
 </table>
+</div>
+
+<div class="pagination">
+    <?php if ($page > 1): ?>
+        <a href="?page=<?php echo $page - 1; ?>&q=<?php echo urlencode($search); ?>" class="primary-btn">Prev</a>
+    <?php endif; ?>
+    
+    <span style="font-weight: bold; color: #2c3e50;">Page <?php echo $page; ?></span>
+    
+    <?php if (count($borrowers) === $limitRows): ?>
+        <a href="?page=<?php echo $page + 1; ?>&q=<?php echo urlencode($search); ?>" class="primary-btn">Next</a>
+    <?php endif; ?>
 </div>
 
 <div id="registerPanel" class="borrowers-register-panel <?php echo $openRegisterForm ? '' : 'is-hidden'; ?>">
 <h2>Register Borrower</h2>
-
 <form action="handlers/borrowers/process_borrower_register.php" method="POST">
-
 <label>Full Name</label><br>
 <input type="text" name="full_name" required>
 <br><br>
-
 <label>Email</label><br>
 <input type="email" name="email" required>
 <br><br>
-
 <label>Contact Number</label><br>
 <input type="text" name="contact_number" required>
 <br><br>
-
 <button type="submit" class="primary-btn">Register</button>
-
 </form>
 </div>
 
@@ -236,11 +238,7 @@ $openRegisterForm = isset($_GET['error']);
 (function () {
     var registerPanel = document.getElementById('registerPanel');
     var toggleBtn = document.getElementById('toggleRegisterBtn');
-
-    if (!registerPanel || !toggleBtn) {
-        return;
-    }
-
+    if (!registerPanel || !toggleBtn) return;
     toggleBtn.addEventListener('click', function () {
         var isHidden = registerPanel.classList.toggle('is-hidden');
         toggleBtn.textContent = isHidden ? '+ Register Borrower' : 'Hide Register Form';

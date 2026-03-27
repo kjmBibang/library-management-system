@@ -24,68 +24,80 @@ $activeBorrows = [];
 $dbError = '';
 
 try {
+    // --- 1. Load available books ---
     $bookStmt = $conn->prepare('CALL sp_book_search(?, ?, ?, ?)');
-    if ($bookStmt) {
-        $search = '';
-        $categoryId = 0;
-        $limitRows = 200;
-        $offsetRows = 0;
-        $bookStmt->bind_param('siii', $search, $categoryId, $limitRows, $offsetRows);
-        $bookStmt->execute();
-
-        $bookResult = $bookStmt->get_result();
-        if ($bookResult) {
-            while ($row = $bookResult->fetch_assoc()) {
-                if ((int) $row['available_copies'] > 0) {
-                    $books[] = $row;
-                }
-            }
-            $bookResult->free();
-        }
-
-        $bookStmt->close();
-        clearStoredResults($conn);
+    if (!$bookStmt) {
+        throw new mysqli_sql_exception('Book query prepare failed: ' . $conn->error);
     }
 
+    $search = '';
+    $categoryId = 0;
+    $limitRows = 200;
+    $offsetRows = 0;
+    $bookStmt->bind_param('siii', $search, $categoryId, $limitRows, $offsetRows);
+    $bookStmt->execute();
+
+    $bookResult = $bookStmt->get_result();
+    if ($bookResult) {
+        while ($row = $bookResult->fetch_assoc()) {
+            if ((int) $row['available_copies'] > 0) {
+                $books[] = $row;
+            }
+        }
+        $bookResult->free();
+    }
+
+    $bookStmt->close();
+    clearStoredResults($conn);
+
+    // --- 2. Load borrowers ---
     $borrowerStmt = $conn->prepare('CALL sp_borrower_search(?, ?, ?)');
-    if ($borrowerStmt) {
-        $searchBorrower = '';
-        $borrowerLimit = 200;
-        $borrowerOffset = 0;
-        $borrowerStmt->bind_param('sii', $searchBorrower, $borrowerLimit, $borrowerOffset);
-        $borrowerStmt->execute();
-
-        $borrowerResult = $borrowerStmt->get_result();
-        if ($borrowerResult) {
-            while ($row = $borrowerResult->fetch_assoc()) {
-                $borrowers[] = $row;
-            }
-            $borrowerResult->free();
-        }
-
-        $borrowerStmt->close();
-        clearStoredResults($conn);
+    if (!$borrowerStmt) {
+        throw new mysqli_sql_exception('Borrower query prepare failed: ' . $conn->error);
     }
 
+    $searchBorrower = '';
+    $borrowerLimit = 200;
+    $borrowerOffset = 0;
+    $borrowerStmt->bind_param('sii', $searchBorrower, $borrowerLimit, $borrowerOffset);
+    $borrowerStmt->execute();
+
+    $borrowerResult = $borrowerStmt->get_result();
+    if ($borrowerResult) {
+        while ($row = $borrowerResult->fetch_assoc()) {
+            $borrowers[] = $row;
+        }
+        $borrowerResult->free();
+    }
+
+    $borrowerStmt->close();
+    clearStoredResults($conn);
+
+    // --- 3. Load active transactions ---
     $activeStmt = $conn->prepare('CALL sp_transaction_active_list(?, ?)');
-    if ($activeStmt) {
-        $activeLimit = 200;
-        $activeOffset = 0;
-        $activeStmt->bind_param('ii', $activeLimit, $activeOffset);
-        $activeStmt->execute();
-
-        $activeResult = $activeStmt->get_result();
-        if ($activeResult) {
-            while ($row = $activeResult->fetch_assoc()) {
-                $activeBorrows[] = $row;
-            }
-            $activeResult->free();
-        }
-
-        $activeStmt->close();
-        clearStoredResults($conn);
+    if (!$activeStmt) {
+        throw new mysqli_sql_exception('Active transactions query prepare failed: ' . $conn->error);
     }
+
+    $activeLimit = 200;
+    $activeOffset = 0;
+    $activeStmt->bind_param('ii', $activeLimit, $activeOffset);
+    $activeStmt->execute();
+
+    $activeResult = $activeStmt->get_result();
+    if ($activeResult) {
+        while ($row = $activeResult->fetch_assoc()) {
+            $activeBorrows[] = $row;
+        }
+        $activeResult->free();
+    }
+
+    $activeStmt->close();
+    clearStoredResults($conn);
+
 } catch (mysqli_sql_exception $e) {
+    $dbError = $e->getMessage();
+} catch (Exception $e) {
     $dbError = $e->getMessage();
 }
 
@@ -156,6 +168,16 @@ $conn->close();
         .row-overdue td {
             background: #fdeaea !important;
         }
+
+        .debug-alert {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fff8e1;
+            border: 1px solid #f0c040;
+            border-radius: 6px;
+            color: #7a5c00;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
@@ -177,6 +199,10 @@ $conn->close();
 
         <?php if ($dbError !== ''): ?>
             <div class="error-alert">Unable to load transaction data right now: <?php echo htmlspecialchars($dbError); ?></div>
+        <?php endif; ?>
+
+        <?php if (empty($borrowers) && $dbError === ''): ?>
+            <div class="debug-alert">⚠️ No borrowers loaded. Make sure <strong>sp_borrower_search</strong> exists in your database and accepts 3 parameters: <code>(search VARCHAR, limit INT, offset INT)</code>.</div>
         <?php endif; ?>
 
         <?php if (isset($_GET['success']) && $_GET['success'] === 'borrowed'): ?>
@@ -239,7 +265,13 @@ $conn->close();
 
                     <label for="borrow_borrower_id">Borrower</label><br>
                     <select id="borrow_borrower_id" name="borrower_id" required>
-                        <option value="">Select borrower</option>
+                        <option value="">
+                            <?php if (empty($borrowers)): ?>
+                                No borrowers found — check sp_borrower_search
+                            <?php else: ?>
+                                Select borrower
+                            <?php endif; ?>
+                        </option>
                         <?php foreach ($borrowers as $borrower): ?>
                             <option value="<?php echo (int) $borrower['borrowerID']; ?>">
                                 <?php echo htmlspecialchars($borrower['full_name']); ?> (<?php echo htmlspecialchars($borrower['email']); ?>)
