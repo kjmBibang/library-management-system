@@ -45,6 +45,10 @@ if (function_exists('require_auth')) {
             <div class="error-alert">Unable to save book right now. Please try again.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'schema'): ?>
+            <div class="error-alert">Database schema is outdated. Run seed-file/seed.sql once, then retry.</div>
+        <?php endif; ?>
+
         <form action="handlers/books/process_book_add.php" method="POST">
             <label for="title">Title</label><br>
             <input type="text" id="title" name="title" required><br><br>

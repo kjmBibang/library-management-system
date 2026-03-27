@@ -94,6 +94,10 @@ if (!$book && $dbError === '') {
             <div class="error-alert">Unable to update book right now. Please try again.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'schema'): ?>
+            <div class="error-alert">Database schema is outdated. Run seed-file/seed.sql once, then retry.</div>
+        <?php endif; ?>
+
         <form action="handlers/books/process_book_edit.php" method="POST">
             <input type="hidden" name="book_id" value="<?php echo $bookId; ?>">
 
@@ -107,7 +111,7 @@ if (!$book && $dbError === '') {
             <input type="text" id="category" name="category" value="<?php echo htmlspecialchars($book['category_name']); ?>" required><br><br>
 
             <label for="year_published">Year Published</label><br>
-            <input type="number" id="year_published" name="year_published" min="1" max="9999" value="<?php echo (int) $book['year_published'] > 0 ? (int) $book['year_published'] : ''; ?>" required><br><br>
+            <input type="number" id="year_published" name="year_published" min="1" max="9999" value="<?php echo ($book['year_published'] !== null && $book['year_published'] !== '') ? (int) $book['year_published'] : ''; ?>" required><br><br>
 
             <label for="total_copies">Total Copies</label><br>
             <input type="number" id="total_copies" name="total_copies" min="0" value="<?php echo (int) $book['total_copies']; ?>" required><br><br>

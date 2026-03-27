@@ -75,6 +75,7 @@ try {
     exit();
 } catch (Throwable $e) {
     $conn->close();
+
     header('Location: ../../book_add.php?error=db');
     exit();
 }
