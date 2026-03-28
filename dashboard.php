@@ -75,7 +75,7 @@ try {
         FROM transactions t
         INNER JOIN borrowers br ON br.borrowerID = t.borrowerID
         INNER JOIN books b ON b.bookID = t.bookID
-        ORDER BY t.borrow_date DESC, t.transactionID DESC
+        ORDER BY t.transactionID DESC
         LIMIT 10
     ";
 
