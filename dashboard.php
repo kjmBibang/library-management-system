@@ -60,7 +60,7 @@ try {
 
     $metrics['overdue_count'] = fetchSingleValue(
         $conn,
-        "SELECT COUNT(*) FROM transactions WHERE return_date IS NULL AND due_date < NOW()"
+        "SELECT COUNT(*) FROM transactions WHERE return_date IS NULL AND status = 'overdue'"
     );
 
     $recentSql = "
