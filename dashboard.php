@@ -8,8 +8,6 @@ if (function_exists('require_auth')) {
     exit();
 }
 
-require_once __DIR__ . '/config/db_connect.php';
-
 $metrics = [
     'total_books' => 0,
     'active_borrowers' => 0,
@@ -17,6 +15,7 @@ $metrics = [
 ];
 $recentTransactions = [];
 $dbError = '';
+$conn = null;
 
 function fetchSingleValue(mysqli $conn, string $sql): int
 {
@@ -47,6 +46,8 @@ function formatDashboardDate(?string $value): string
 }
 
 try {
+    require_once __DIR__ . '/config/db_connect.php';
+
     $metrics['total_books'] = fetchSingleValue(
         $conn,
         'SELECT COUNT(*) FROM books'
@@ -93,7 +94,9 @@ try {
     $dbError = 'Unable to load dashboard data right now.';
 }
 
-$conn->close();
+if ($conn !== null) {
+    $conn->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
