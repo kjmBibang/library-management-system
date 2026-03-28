@@ -762,6 +762,6 @@ CREATE USER IF NOT EXISTS 'bryce_staff_app'@'localhost' IDENTIFIED BY 'BryceStaf
 GRANT rl_bryce_admin TO 'bryce_admin_app'@'localhost';
 GRANT rl_bryce_staff TO 'bryce_staff_app'@'localhost';
 
-SET DEFAULT ROLE rl_bryce_admin TO 'bryce_admin_app'@'localhost';
-SET DEFAULT ROLE rl_bryce_staff TO 'bryce_staff_app'@'localhost';
+SET DEFAULT ROLE rl_bryce_admin FOR 'bryce_admin_app'@'localhost';
+SET DEFAULT ROLE rl_bryce_staff FOR 'bryce_staff_app'@'localhost';
 
