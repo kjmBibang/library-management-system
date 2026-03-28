@@ -10,6 +10,8 @@ if (function_exists('require_auth')) {
 
 require_once __DIR__ . '/config/db_connect.php';
 
+$isAdmin = function_exists('is_admin') && is_admin();
+
 function clearStoredResults(mysqli $conn): void
 {
     while ($conn->more_results() && $conn->next_result()) {
@@ -125,7 +127,11 @@ $conn->close();
             <div class="error-alert">Book not found.</div>
         <?php endif; ?>
 
-        <a href="book_add.php" class="primary-btn">+ Add Book</a>
+        <?php if ($isAdmin): ?>
+            <a href="book_add.php" class="primary-btn">+ Add Book</a>
+        <?php else: ?>
+            <div class="error-alert" style="background:#eef7ff; color:#2c3e50; border-color:#7aa7d9;">Staff role has view-only access to the book catalog.</div>
+        <?php endif; ?>
 
         <form action="books.php" method="GET" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: end;">
             <div>
@@ -182,8 +188,12 @@ $conn->close();
                             <td><?php echo (int) $book['available_copies']; ?></td>
                             <td><?php echo htmlspecialchars($book['availability_status']); ?></td>
                             <td>
-                                <a href="book_edit.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn">Edit</a>
-                                <a href="book_delete.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn" style="background:#e74c3c;">Delete</a>
+                                <?php if ($isAdmin): ?>
+                                    <a href="book_edit.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn">Edit</a>
+                                    <a href="book_delete.php?id=<?php echo (int) $book['bookID']; ?>" class="primary-btn" style="background:#e74c3c;">Delete</a>
+                                <?php else: ?>
+                                    <span style="color:#6b7280;">View only</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -35,6 +35,18 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (isset($_GET['error']) && $_GET['error'] == 'forbidden_role'): ?>
+                <div style="color: #e74c3c; background: #fdeaea; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #e74c3c;">
+                    Only admins can register new admin accounts.
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_GET['error']) && $_GET['error'] == 'db'): ?>
+                <div style="color: #e74c3c; background: #fdeaea; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; border: 1px solid #e74c3c;">
+                    Registration failed due to a database error.
+                </div>
+            <?php endif; ?>
+
             <form action="handlers/auth/process_signup.php" method="POST">
                 <div class="input-group">
                     <label for="username">Create Username</label>

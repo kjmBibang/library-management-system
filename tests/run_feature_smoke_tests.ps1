@@ -86,6 +86,11 @@ $seedPath = Resolve-Path (Join-Path $projectRoot "seed-file/seed.sql")
 if ($ResetDatabase) {
     Write-Host "Resetting database from seed-file/seed.sql..." -ForegroundColor Cyan
     $seedForMysql = ($seedPath.Path -replace '\\', '/')
+    & $MysqlExe -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS $DbName"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Database drop failed"
+    }
+
     & $MysqlExe -h 127.0.0.1 -P 3306 -u root -e "SOURCE $seedForMysql"
     if ($LASTEXITCODE -ne 0) {
         throw "Database reset failed"
@@ -94,8 +99,10 @@ if ($ResetDatabase) {
 
 $stamp = Get-Date -Format "yyyyMMddHHmmss"
 $rand = Get-Random -Minimum 100 -Maximum 999
-$username = "smoke_user_${stamp}_${rand}"
-$password = "P@ssw0rd!${rand}"
+$adminUsername = "smoke_admin_${stamp}_${rand}"
+$adminPassword = "P@ssw0rd!A${rand}"
+$staffUsername = "smoke_staff_${stamp}_${rand}"
+$staffPassword = "P@ssw0rd!S${rand}"
 $bookTitle = "Smoke Book ${stamp}-${rand}"
 $bookAuthor = "Smoke Author"
 $bookCategory = "Smoke Category ${stamp}"
@@ -104,6 +111,7 @@ $borrowerName = "Smoke Borrower ${stamp}"
 $borrowerContact = "0917${stamp.Substring($stamp.Length - 7)}"
 
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$staffSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 
 Run-Test "Public login page reachable" {
     $response = Invoke-AppRequest -Method GET -Path "login.php" -Session $null
@@ -116,42 +124,74 @@ Run-Test "Protected page redirects when unauthenticated" {
     Assert-True ($finalUrl -like "*login.php*") "Expected redirect to login, got: $finalUrl"
 }
 
-Run-Test "Signup success" {
+Run-Test "Bootstrap admin signup success" {
     $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_signup.php" -Session $null -Body @{
-        username = $username
-        password = $password
-        role     = "staff"
+        username = $adminUsername
+        password = $adminPassword
+        role     = "admin"
     }
     $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
     Assert-True ($finalUrl -like "*signup.php?success=1*") "Expected signup success redirect, got: $finalUrl"
 }
 
-Run-Test "Signup duplicate username blocked" {
+Run-Test "Admin signup blocked for unauthenticated users after bootstrap" {
     $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_signup.php" -Session $null -Body @{
-        username = $username
-        password = $password
-        role     = "staff"
+        username = "blocked_admin_${stamp}_${rand}"
+        password = "P@ssw0rd!X${rand}"
+        role     = "admin"
     }
     $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
-    Assert-True ($finalUrl -like "*signup.php?error=exists*") "Expected duplicate error redirect, got: $finalUrl"
+    Assert-True ($finalUrl -like "*signup.php?error=forbidden_role*") "Expected forbidden role redirect, got: $finalUrl"
 }
 
 Run-Test "Login fails with wrong password" {
     $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_login.php" -Session $null -Body @{
-        username = $username
+        username = $adminUsername
         password = "bad-password"
     }
     $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
     Assert-True ($finalUrl -like "*login.php?error=invalid*") "Expected invalid login redirect, got: $finalUrl"
 }
 
-Run-Test "Login success" {
+Run-Test "Admin login success" {
     $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_login.php" -Session $session -Body @{
-        username = $username
-        password = $password
+        username = $adminUsername
+        password = $adminPassword
     }
     $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
     Assert-True ($finalUrl -like "*dashboard.php*") "Expected dashboard redirect, got: $finalUrl"
+}
+
+Run-Test "Admin creates staff account" {
+    $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_signup.php" -Session $session -Body @{
+        username = $staffUsername
+        password = $staffPassword
+        role     = "staff"
+    }
+    $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
+    Assert-True ($finalUrl -like "*signup.php?success=1*") "Expected staff signup success redirect, got: $finalUrl"
+}
+
+Run-Test "Staff login success" {
+    $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_login.php" -Session $staffSession -Body @{
+        username = $staffUsername
+        password = $staffPassword
+    }
+    $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
+    Assert-True ($finalUrl -like "*dashboard.php*") "Expected staff dashboard redirect, got: $finalUrl"
+}
+
+Run-Test "Staff blocked from book add page" {
+    $response = Invoke-AppRequest -Method GET -Path "book_add.php" -Session $staffSession
+    $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
+    Assert-True ($finalUrl -like "*login.php?error=forbidden*") "Expected forbidden redirect, got: $finalUrl"
+}
+
+Run-Test "Staff can access borrowers and transactions" {
+    $borrowers = Invoke-AppRequest -Method GET -Path "borrowers.php" -Session $staffSession
+    $transactions = Invoke-AppRequest -Method GET -Path "transactions.php" -Session $staffSession
+    Assert-True ($borrowers.StatusCode -eq 200) "Expected borrowers page HTTP 200"
+    Assert-True ($transactions.StatusCode -eq 200) "Expected transactions page HTTP 200"
 }
 
 Run-Test "Books page loads while authenticated" {
