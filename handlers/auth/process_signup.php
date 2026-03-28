@@ -2,6 +2,8 @@
 require_once '../../includes/auth_guard.php';
 require_once '../../config/db_connect.php';
 
+const ADMIN_SIGNUP_ACCESS_CODE = 'mezzzc6d';
+
 function clearStoredResults(mysqli $conn): void
 {
     while ($conn->more_results() && $conn->next_result()) {
@@ -16,7 +18,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
     $role = isset($_POST['role']) ? trim(strtolower($_POST['role'])) : 'staff';
     $plain_password = $_POST['password'];
+    $adminAccessCode = isset($_POST['admin_access_code']) ? trim((string) $_POST['admin_access_code']) : '';
     $actorRole = current_user_role();
+    $adminCodeValidated = false;
 
     if ($username === '') {
         header("Location: ../../signup.php?error=exists");
@@ -28,6 +32,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
+    if ($role === 'admin' && $actorRole !== 'admin') {
+        $hasAdminAccount = false;
+        $adminCountResult = $conn->query("SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin'");
+        if ($adminCountResult) {
+            $adminCountRow = $adminCountResult->fetch_assoc();
+            $hasAdminAccount = ((int) ($adminCountRow['admin_count'] ?? 0)) > 0;
+            $adminCountResult->free();
+        }
+
+        if ($hasAdminAccount && !hash_equals(ADMIN_SIGNUP_ACCESS_CODE, $adminAccessCode)) {
+            header("Location: ../../signup.php?error=invalid_admin_code");
+            exit();
+        }
+
+        if ($hasAdminAccount) {
+            $adminCodeValidated = true;
+        }
+    }
+
     $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
 
     $stmt = $conn->prepare('CALL sp_user_create(?, ?, ?, ?)');
@@ -37,6 +60,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     $actorRoleParam = $actorRole !== null ? $actorRole : '';
+    if ($role === 'admin' && $adminCodeValidated) {
+        $actorRoleParam = 'admin';
+    }
     $stmt->bind_param("ssss", $username, $hashed_password, $role, $actorRoleParam);
 
     try {

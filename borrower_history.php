@@ -51,7 +51,7 @@ try {
         if ($historyStmt === false) {
             throw new Exception('Database Prepare Error: ' . $conn->error);
         }
-
+    
         $historyStmt->bind_param('i', $borrowerId);
         $historyStmt->execute();
         $historyResult = $historyStmt->get_result();
@@ -155,6 +155,5 @@ $conn->close();
             </tbody>
         </table>
     </section>
-
 </body>
 </html>

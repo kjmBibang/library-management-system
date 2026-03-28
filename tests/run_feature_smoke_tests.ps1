@@ -101,6 +101,8 @@ $stamp = Get-Date -Format "yyyyMMddHHmmss"
 $rand = Get-Random -Minimum 100 -Maximum 999
 $adminUsername = "smoke_admin_${stamp}_${rand}"
 $adminPassword = "P@ssw0rd!A${rand}"
+$adminAccessCode = "mezzzc6d"
+$secondAdminUsername = "smoke_admin2_${stamp}_${rand}"
 $staffUsername = "smoke_staff_${stamp}_${rand}"
 $staffPassword = "P@ssw0rd!S${rand}"
 $bookTitle = "Smoke Book ${stamp}-${rand}"
@@ -141,7 +143,19 @@ Run-Test "Admin signup blocked for unauthenticated users after bootstrap" {
         role     = "admin"
     }
     $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
-    Assert-True ($finalUrl -like "*signup.php?error=forbidden_role*") "Expected forbidden role redirect, got: $finalUrl"
+    $isExpectedBlock = ($finalUrl -like "*signup.php?error=forbidden_role*") -or ($finalUrl -like "*signup.php?error=invalid_admin_code*")
+    Assert-True $isExpectedBlock "Expected admin signup block redirect, got: $finalUrl"
+}
+
+Run-Test "Admin signup with valid access code succeeds" {
+    $response = Invoke-AppRequest -Method POST -Path "handlers/auth/process_signup.php" -Session $null -Body @{
+        username          = $secondAdminUsername
+        password          = "P@ssw0rd!B${rand}"
+        role              = "admin"
+        admin_access_code = $adminAccessCode
+    }
+    $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
+    Assert-True ($finalUrl -like "*signup.php?success=1*") "Expected admin signup success via access code, got: $finalUrl"
 }
 
 Run-Test "Login fails with wrong password" {

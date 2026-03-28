@@ -1,0 +1,105 @@
+BRYCE LIBRARY DB DATA DICTIONARY
+Scope: SP, VW, TRG, FN, EV objects with references outside seed-file.
+
+PROCEDURES
+sp_auth_get_user:
+used in [handlers/auth/process_login.php][23]
+
+sp_book_delete:
+used in [handlers/books/process_book_delete.php][18]
+
+sp_book_get_by_id:
+used in [book_delete.php][23]
+used in [book_edit.php][24]
+
+sp_book_save:
+used in [handlers/books/process_book_add.php][57]
+used in [handlers/books/process_book_edit.php][58]
+
+sp_book_search:
+used in [books.php][54]
+used in [tests/run_feature_smoke_tests.ps1][244]
+used in [transactions.php][29]
+
+sp_borrow_book:
+used in [handlers/transactions/process_borrow.php][30]
+
+sp_borrower_get_by_id:
+used in [borrower_history.php][33]
+
+sp_borrower_history_list:
+used in [borrower_history.php][50]
+
+sp_borrower_save:
+used in [handlers/borrowers/process_borrower_register.php][34]
+
+sp_borrower_search:
+used in [borrowers.php][32]
+used in [tests/run_feature_smoke_tests.ps1][303]
+used in [transactions.php][55]
+used in [transactions.php][206]
+used in [transactions.php][271]
+
+sp_category_get_or_create:
+used in [handlers/books/process_book_add.php][29]
+used in [handlers/books/process_book_edit.php][30]
+
+sp_category_list:
+used in [books.php][38]
+
+sp_dashboard_summary:
+used in [dashboard.php][83]
+
+sp_recent_transactions:
+used in [dashboard.php][101]
+
+sp_return_book:
+used in [handlers/transactions/process_return.php][30]
+
+sp_transaction_active_list:
+used in [tests/run_feature_smoke_tests.ps1][336]
+used in [transactions.php][78]
+
+sp_user_create:
+used in [handlers/auth/process_signup.php][56]
+
+VIEWS
+vw_active_overdue_transactions:
+used in [dashboard.php][144]
+
+vw_books_catalog:
+used in [dashboard.php][124]
+
+vw_borrower_history:
+used in [dashboard.php][168]
+
+TRIGGERS
+trg_transactions_ai_decrement_on_borrow:
+used in [dashboard.php][190]
+
+trg_transactions_au_increment_on_return:
+used in [dashboard.php][191]
+
+trg_transactions_bi_validate_borrow:
+used in [dashboard.php][189]
+
+FUNCTIONS
+fn_book_availability_status:
+used in [dashboard.php][122]
+
+fn_compute_penalty:
+used in [dashboard.php][143]
+
+fn_days_overdue:
+used in [dashboard.php][142]
+used in [dashboard.php][145]
+
+EVENTS
+ev_auto_set_returned_status:
+used in [dashboard.php][40]
+
+ev_mark_overdue_transactions:
+used in [dashboard.php][30]
+
+ev_refresh_penalties:
+used in [dashboard.php][35]
