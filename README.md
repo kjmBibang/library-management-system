@@ -81,3 +81,26 @@ Business logic and reporting are pushed into the database layer:
   - `login.php`
   - `signup.php`
 - Protected pages require session and role checks via `includes/auth_guard.php`.
+
+## Testing
+
+Run the end-to-end feature smoke tests from the project root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\run_feature_smoke_tests.ps1
+```
+
+What this test covers:
+
+- Public and protected route behavior (before/after login)
+- Signup and login (success and failure)
+- Book add, edit, and delete (including active-transaction delete protection)
+- Borrower registration (success and validation failure)
+- Borrow and return flows (success and validation failure)
+- Logout and post-logout access control
+
+Optional parameters:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\run_feature_smoke_tests.ps1 -BaseUrl "http://localhost/library-management-system" -MysqlExe "C:/xampp/mysql/bin/mysql.exe" -DbName "bryce_library" -ResetDatabase $true
+```
