@@ -102,6 +102,8 @@ DROP PROCEDURE IF EXISTS sp_recent_transactions;
 DROP PROCEDURE IF EXISTS sp_dashboard_summary;
 DROP PROCEDURE IF EXISTS sp_return_book;
 DROP PROCEDURE IF EXISTS sp_borrow_book;
+DROP PROCEDURE IF EXISTS sp_borrower_history_list;
+DROP PROCEDURE IF EXISTS sp_borrower_get_by_id;
 DROP PROCEDURE IF EXISTS sp_borrower_search;
 DROP PROCEDURE IF EXISTS sp_borrower_save;
 DROP PROCEDURE IF EXISTS sp_book_search;
@@ -296,6 +298,10 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot delete book with active transactions';
     END IF;
 
+        DELETE FROM transactions
+        WHERE bookID = p_bookID
+            AND return_date IS NOT NULL;
+
     DELETE FROM books WHERE bookID = p_bookID;
 END //
 
@@ -391,6 +397,43 @@ BEGIN
        OR contact_number LIKE CONCAT('%', p_search, '%')
     ORDER BY registered_date DESC
     LIMIT p_limit_rows OFFSET p_offset_rows;
+END //
+
+CREATE PROCEDURE sp_borrower_get_by_id(
+    IN p_borrower_id INT
+)
+BEGIN
+    SELECT
+        borrowerID,
+        full_name,
+        email,
+        contact_number,
+        registered_date
+    FROM borrowers
+    WHERE borrowerID = p_borrower_id
+    LIMIT 1;
+END //
+
+CREATE PROCEDURE sp_borrower_history_list(
+    IN p_borrower_id INT
+)
+BEGIN
+    SELECT
+        t.transactionID,
+        t.bookID,
+        b.title,
+        b.author,
+        t.borrow_date,
+        t.due_date,
+        t.return_date,
+        t.status,
+        t.penalty_fee,
+        u.username AS processed_by_username
+    FROM transactions t
+    INNER JOIN books b ON b.bookID = t.bookID
+    LEFT JOIN users u ON u.id = t.processed_by
+    WHERE t.borrowerID = p_borrower_id
+    ORDER BY t.borrow_date DESC;
 END //
 
 CREATE PROCEDURE sp_borrow_book(
@@ -647,3 +690,15 @@ DO
     SET status = 'returned'
     WHERE return_date IS NOT NULL
       AND status IN ('borrowed', 'overdue');
+
+-- Update daily penalty rate to 25.00 PHP I delete if dli kailangan
+DROP EVENT IF EXISTS ev_refresh_penalties;
+
+CREATE EVENT ev_refresh_penalties
+ON SCHEDULE EVERY 1 HOUR
+DO
+    UPDATE transactions
+    SET penalty_fee = fn_compute_penalty(due_date, NOW(), 25.00)
+    WHERE STATUS = 'overdue'
+      AND return_date IS NULL;
+
