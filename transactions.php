@@ -22,6 +22,7 @@ $books = [];
 $borrowers = [];
 $activeBorrows = [];
 $dbError = '';
+$dailyPenaltyRate = 25.00;
 
 try {
     // --- 1. Load available books ---
@@ -319,12 +320,13 @@ $conn->close();
                         <th>Due Tracking</th>
                         <th>Status</th>
                         <th>Overdue Days</th>
+                        <th>Penalty Fee</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (count($activeBorrows) === 0): ?>
                         <tr>
-                            <td colspan="8">No active borrows right now.</td>
+                            <td colspan="9">No active borrows right now.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($activeBorrows as $tx): ?>
@@ -348,6 +350,10 @@ $conn->close();
                                     $minutesLate = (int) floor(($lateSeconds % 3600) / 60);
                                     $dueTrackingText = 'Overdue by ' . $hoursLate . 'h ' . $minutesLate . 'm';
                                 }
+
+                                $storedPenalty = isset($tx['penalty_fee']) ? (float) $tx['penalty_fee'] : 0.0;
+                                $computedPenalty = max(0, (int) $tx['current_days_overdue']) * $dailyPenaltyRate;
+                                $displayPenalty = $isOverdue ? max($storedPenalty, $computedPenalty) : $storedPenalty;
                             ?>
                             <tr class="<?php echo $rowClass; ?>" data-due-date="<?php echo htmlspecialchars((string) $tx['due_date']); ?>">
                                 <td><?php echo (int) $tx['transactionID']; ?></td>
@@ -358,6 +364,7 @@ $conn->close();
                                 <td class="js-due-tracking"><?php echo htmlspecialchars($dueTrackingText); ?></td>
                                 <td><span class="<?php echo $statusClass; ?> js-status-pill"><?php echo $isOverdue ? 'Overdue' : 'Active'; ?></span></td>
                                 <td><?php echo (int) $tx['current_days_overdue']; ?></td>
+                                <td class="penalty-text"><?php echo number_format(max(0.0, $displayPenalty), 2); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

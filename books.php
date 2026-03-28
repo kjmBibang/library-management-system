@@ -113,6 +113,18 @@ $conn->close();
             <div class="error-alert" style="background:#eafaf1 !important; color:#27ae60 !important; border-color:#27ae60 !important;">Book deleted successfully.</div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'cannot_delete_active'): ?>
+            <div class="error-alert">Cannot delete this book because it has active borrowed or overdue transactions.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'delete_failed'): ?>
+            <div class="error-alert">Delete failed. Please try again.</div>
+        <?php endif; ?>
+
+        <?php if (isset($_GET['error']) && $_GET['error'] === 'not_found'): ?>
+            <div class="error-alert">Book not found.</div>
+        <?php endif; ?>
+
         <a href="book_add.php" class="primary-btn">+ Add Book</a>
 
         <form action="books.php" method="GET" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: end;">

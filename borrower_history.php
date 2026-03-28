@@ -26,42 +26,45 @@ $borrowerId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $history = [];
 $borrowerName = '';
 $dbError = '';
+$dailyPenaltyRate = 25.00;
 
 try {
     if ($borrowerId > 0) {
-        // 1. Fetch Borrower Name for header
-        $stmt = $conn->prepare("SELECT full_name FROM borrowers WHERE borrowerID = ?");
-        if ($stmt) {
-            $stmt->bind_param("i", $borrowerId);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            if ($row = $res->fetch_assoc()) {
-                $borrowerName = $row['full_name'];
-            }
-            $stmt->close();
+        $borrowerStmt = $conn->prepare('CALL sp_borrower_get_by_id(?)');
+        if ($borrowerStmt === false) {
+            throw new Exception('Database Prepare Error: ' . $conn->error);
         }
 
-        // 2. Fetch History using correct column: penalty_fee 
-        $query = "SELECT b.title, t.borrow_date, t.due_date, t.return_date, t.status, t.penalty_fee 
-                  FROM transactions t
-                  JOIN books b ON t.bookID = b.bookID
-                  WHERE t.borrowerID = ?
-                  ORDER BY t.borrow_date DESC";
-        
-        $historyStmt = $conn->prepare($query);
-        
+        $borrowerStmt->bind_param('i', $borrowerId);
+        $borrowerStmt->execute();
+        $borrowerResult = $borrowerStmt->get_result();
+        if ($borrowerResult && ($borrowerRow = $borrowerResult->fetch_assoc())) {
+            $borrowerName = (string) $borrowerRow['full_name'];
+        }
+        if ($borrowerResult) {
+            $borrowerResult->free();
+        }
+        $borrowerStmt->close();
+        clearStoredResults($conn);
+
+        $historyStmt = $conn->prepare('CALL sp_borrower_history_list(?)');
         if ($historyStmt === false) {
-            throw new Exception("Database Prepare Error: " . $conn->error);
+            throw new Exception('Database Prepare Error: ' . $conn->error);
         }
 
-        $historyStmt->bind_param("i", $borrowerId);
+        $historyStmt->bind_param('i', $borrowerId);
         $historyStmt->execute();
-        $result = $historyStmt->get_result();
-        
-        while ($row = $result->fetch_assoc()) {
-            $history[] = $row;
+        $historyResult = $historyStmt->get_result();
+
+        if ($historyResult) {
+            while ($row = $historyResult->fetch_assoc()) {
+                $history[] = $row;
+            }
+            $historyResult->free();
         }
+
         $historyStmt->close();
+        clearStoredResults($conn);
     }
 } catch (Exception $e) {
     $dbError = $e->getMessage();
@@ -129,18 +132,22 @@ $conn->close();
                             <td><?php echo $row['return_date'] ? htmlspecialchars($row['return_date']) : '<em>Pending</em>'; ?></td>
                             <td><?php echo htmlspecialchars($row['status']); ?></td>
                             <td style="color: #e74c3c; font-weight: bold;">
-    <?php 
-    if ($row['status'] === 'returned' || $row['penalty_fee'] > 0) {
-        echo number_format($row['penalty_fee'], 2);
-    } else if ($row['status'] === 'overdue') {
-        $today = new DateTime();
-        $dueDate = new DateTime($row['due_date']);
-        $days = $today->diff($dueDate)->days;
-        echo number_format($days * 25.00, 2);
-    } else {
-        echo '0.00';
-    }
-    ?>
+                                <?php
+                                $storedPenalty = isset($row['penalty_fee']) ? (float) $row['penalty_fee'] : 0.0;
+                                $status = strtolower((string) $row['status']);
+                                $isOverdue = $status === 'overdue';
+                                $daysOverdue = 0;
+
+                                $dueTimestamp = strtotime((string) $row['due_date']);
+                                if ($isOverdue && $dueTimestamp !== false && $dueTimestamp < time()) {
+                                    $daysOverdue = (int) floor((time() - $dueTimestamp) / 86400);
+                                }
+
+                                $computedPenalty = $daysOverdue * $dailyPenaltyRate;
+                                $displayPenalty = $isOverdue ? max($storedPenalty, $computedPenalty) : $storedPenalty;
+
+                                echo number_format(max(0.0, $displayPenalty), 2);
+                                ?>
 </td>
                         </tr>
                     <?php endforeach; ?>
