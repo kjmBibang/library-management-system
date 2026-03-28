@@ -98,6 +98,7 @@ DROP TRIGGER IF EXISTS trg_transactions_au_increment_on_return;
 DROP TRIGGER IF EXISTS trg_transactions_ai_decrement_on_borrow;
 DROP TRIGGER IF EXISTS trg_transactions_bi_validate_borrow;
 
+DROP PROCEDURE IF EXISTS sp_recent_transactions;
 DROP PROCEDURE IF EXISTS sp_dashboard_summary;
 DROP PROCEDURE IF EXISTS sp_return_book;
 DROP PROCEDURE IF EXISTS sp_borrow_book;
@@ -476,6 +477,25 @@ BEGIN
         processed_by = p_processed_by,
         penalty_fee = fn_compute_penalty(v_due_date, p_return_date, p_daily_rate)
     WHERE transactionID = p_transactionID;
+END //
+
+CREATE PROCEDURE sp_recent_transactions(
+    IN p_limit_rows INT
+)
+BEGIN
+    SET p_limit_rows = COALESCE(NULLIF(p_limit_rows, 0), 10);
+
+    SELECT
+        br.full_name AS borrower_name,
+        b.title AS book_title,
+        t.status,
+        t.borrow_date,
+        t.due_date
+    FROM transactions t
+    INNER JOIN borrowers br ON br.borrowerID = t.borrowerID
+    INNER JOIN books b ON b.bookID = t.bookID
+    ORDER BY t.transactionID DESC
+    LIMIT p_limit_rows;
 END //
 
 CREATE PROCEDURE sp_dashboard_summary()

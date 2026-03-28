@@ -10,25 +10,20 @@ if (function_exists('require_auth')) {
 
 $metrics = [
     'total_books' => 0,
-    'active_borrowers' => 0,
+    'active_transactions' => 0,
     'overdue_count' => 0,
 ];
 $recentTransactions = [];
 $dbError = '';
 $conn = null;
 
-function fetchSingleValue(mysqli $conn, string $sql): int
+function clearDashboardResults(mysqli $conn): void
 {
-    $result = $conn->query($sql);
-    if (!$result) {
-        throw new RuntimeException('Database query failed.');
+    while ($conn->more_results() && $conn->next_result()) {
+        if ($result = $conn->store_result()) {
+            $result->free();
+        }
     }
-
-    $row = $result->fetch_row();
-    $value = $row ? (int) $row[0] : 0;
-    $result->free();
-
-    return $value;
 }
 
 function formatDashboardDate(?string $value): string
@@ -48,48 +43,40 @@ function formatDashboardDate(?string $value): string
 try {
     require_once __DIR__ . '/config/db_connect.php';
 
-    $metrics['total_books'] = fetchSingleValue(
-        $conn,
-        'SELECT COUNT(*) FROM books'
-    );
-
-    $metrics['active_borrowers'] = fetchSingleValue(
-        $conn,
-        "SELECT COUNT(DISTINCT borrowerID) FROM transactions WHERE return_date IS NULL AND status IN ('borrowed', 'overdue')"
-    );
-
-    $metrics['overdue_count'] = fetchSingleValue(
-        $conn,
-        "SELECT COUNT(*) FROM transactions WHERE return_date IS NULL AND status = 'overdue'"
-    );
-
-    $recentSql = "
-        SELECT
-            br.full_name AS borrower_name,
-            b.title AS book_title,
-            CASE
-                WHEN t.return_date IS NULL AND t.due_date < NOW() THEN 'overdue'
-                ELSE t.status
-            END AS status,
-            t.borrow_date,
-            t.due_date
-        FROM transactions t
-        INNER JOIN borrowers br ON br.borrowerID = t.borrowerID
-        INNER JOIN books b ON b.bookID = t.bookID
-        ORDER BY t.transactionID DESC
-        LIMIT 10
-    ";
-
-    $recentResult = $conn->query($recentSql);
-    if (!$recentResult) {
-        throw new RuntimeException('Unable to load recent transactions.');
+    $summaryStmt = $conn->prepare('CALL sp_dashboard_summary()');
+    if (!$summaryStmt) {
+        throw new RuntimeException('Failed to prepare dashboard summary statement.');
     }
-
-    while ($row = $recentResult->fetch_assoc()) {
-        $recentTransactions[] = $row;
+    $summaryStmt->execute();
+    $summaryResult = $summaryStmt->get_result();
+    if ($summaryResult) {
+        $summaryRow = $summaryResult->fetch_assoc();
+        if ($summaryRow) {
+            $metrics['total_books'] = (int) $summaryRow['total_books'];
+            $metrics['active_transactions'] = (int) $summaryRow['active_transactions'];
+            $metrics['overdue_count'] = (int) $summaryRow['overdue_transactions'];
+        }
+        $summaryResult->free();
     }
+    $summaryStmt->close();
+    clearDashboardResults($conn);
 
-    $recentResult->free();
+    $recentStmt = $conn->prepare('CALL sp_recent_transactions(?)');
+    if (!$recentStmt) {
+        throw new RuntimeException('Failed to prepare recent transactions statement.');
+    }
+    $recentLimit = 10;
+    $recentStmt->bind_param('i', $recentLimit);
+    $recentStmt->execute();
+    $recentResult = $recentStmt->get_result();
+    if ($recentResult) {
+        while ($row = $recentResult->fetch_assoc()) {
+            $recentTransactions[] = $row;
+        }
+        $recentResult->free();
+    }
+    $recentStmt->close();
+    clearDashboardResults($conn);
 } catch (Throwable $e) {
     $dbError = 'Unable to load dashboard data right now.';
 }
@@ -141,8 +128,8 @@ if ($conn !== null) {
             </div>
 
             <div class="service-card">
-                <h3>Active Borrowers</h3>
-                <p><?php echo (int) $metrics['active_borrowers']; ?> borrowers currently have active transactions.</p>
+                <h3>Active Transactions</h3>
+                <p><?php echo (int) $metrics['active_transactions']; ?> active transactions currently in progress.</p>
             </div>
 
             <div class="service-card">
