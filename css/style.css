@@ -302,6 +302,50 @@ form input{
     border: 1px solid #ccc;
     border-radius: 5px;
 }
+
+/* Mabanag: Optional Features Styles */
+.pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+}
+
+.pagination a, .pagination span {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #3498db;
+}
+
+.pagination .current-page {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.penalty-amount {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* Mabanag: Pagination and History Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.penalty-text {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+
 /* =================================================================================================*/
 /* DO NOT EDIT ABOVE UNDER ANY CIRCUMSTANCE | AYAW I EDIT AND CODE SA TAAS */
 

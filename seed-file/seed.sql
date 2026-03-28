@@ -647,3 +647,15 @@ DO
     SET status = 'returned'
     WHERE return_date IS NOT NULL
       AND status IN ('borrowed', 'overdue');
+
+-- Update daily penalty rate to 25.00 PHP I delete if dli kailangan
+DROP EVENT IF EXISTS ev_refresh_penalties;
+
+CREATE EVENT ev_refresh_penalties
+ON SCHEDULE EVERY 1 HOUR
+DO
+    UPDATE transactions
+    SET penalty_fee = fn_compute_penalty(due_date, NOW(), 25.00)
+    WHERE STATUS = 'overdue'
+      AND return_date IS NULL;
+
