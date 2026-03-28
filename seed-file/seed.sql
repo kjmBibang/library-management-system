@@ -186,22 +186,35 @@ CREATE PROCEDURE sp_auth_get_user(
 BEGIN
     SELECT id, username, password, role
     FROM users
-    WHERE username = p_username
+    WHERE LOWER(username) = LOWER(TRIM(p_username))
     LIMIT 1;
 END //
 
 CREATE PROCEDURE sp_user_create(
     IN p_username VARCHAR(255),
     IN p_password VARCHAR(255),
-    IN p_role VARCHAR(20)
+    IN p_role VARCHAR(20),
+    IN p_actor_role VARCHAR(20)
 )
 BEGIN
     DECLARE v_role VARCHAR(20);
+    DECLARE v_actor_role VARCHAR(20);
+    DECLARE v_admin_count INT DEFAULT 0;
 
     SET v_role = LOWER(TRIM(COALESCE(p_role, 'staff')));
+    SET v_actor_role = LOWER(TRIM(COALESCE(p_actor_role, '')));
+
+    SELECT COUNT(*)
+    INTO v_admin_count
+    FROM users
+    WHERE role = 'admin';
 
     IF v_role NOT IN ('admin', 'staff') THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid role';
+    END IF;
+
+    IF v_role = 'admin' AND v_admin_count > 0 AND v_actor_role <> 'admin' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only admin users can create admin accounts';
     END IF;
 
     IF EXISTS (SELECT 1 FROM users WHERE username = p_username) THEN
@@ -701,4 +714,54 @@ DO
     SET penalty_fee = fn_compute_penalty(due_date, NOW(), 25.00)
     WHERE STATUS = 'overdue'
       AND return_date IS NULL;
+
+-- DCL: role-based database permissions for local development.
+CREATE ROLE IF NOT EXISTS rl_bryce_admin;
+CREATE ROLE IF NOT EXISTS rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_auth_get_user TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_auth_get_user TO rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_user_create TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_user_create TO rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_category_list TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_category_list TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_search TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_search TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_get_by_id TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_get_by_id TO rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_search TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_search TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_get_by_id TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_get_by_id TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_history_list TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_history_list TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_save TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrower_save TO rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_transaction_active_list TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_transaction_active_list TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrow_book TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_borrow_book TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_return_book TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_return_book TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_dashboard_summary TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_dashboard_summary TO rl_bryce_staff;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_recent_transactions TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_recent_transactions TO rl_bryce_staff;
+
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_category_get_or_create TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_save TO rl_bryce_admin;
+GRANT EXECUTE ON PROCEDURE bryce_library.sp_book_delete TO rl_bryce_admin;
+
+CREATE USER IF NOT EXISTS 'bryce_admin_app'@'localhost' IDENTIFIED BY 'BryceAdmin#2026';
+CREATE USER IF NOT EXISTS 'bryce_staff_app'@'localhost' IDENTIFIED BY 'BryceStaff#2026';
+
+GRANT rl_bryce_admin TO 'bryce_admin_app'@'localhost';
+GRANT rl_bryce_staff TO 'bryce_staff_app'@'localhost';
+
+SET DEFAULT ROLE rl_bryce_admin FOR 'bryce_admin_app'@'localhost';
+SET DEFAULT ROLE rl_bryce_staff FOR 'bryce_staff_app'@'localhost';
 

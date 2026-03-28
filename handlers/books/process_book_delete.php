@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/auth_guard.php';
-require_auth(['admin', 'staff']);
+require_auth(['admin']);
 require_once '../../config/db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
